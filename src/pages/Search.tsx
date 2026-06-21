@@ -715,7 +715,7 @@ export default function Search() {
 
     const handleRefresh = () => {
         setPage(1);
-        void searchPlayer({skipCache: true, page: 1});
+        void searchPlayer({refresh: true, page: 1});
         // 比较模式下也刷新第二个玩家
         if (compareMode && compareQuery.trim()) {
             void handleCompareSubmit();

@@ -243,7 +243,7 @@ export default function Leaderboard() {
 
   const handleRefresh = () => {
     if (loading) return;
-    void fetchLeaderboard({ skipCache: true });
+    void fetchLeaderboard({});
   };
 
   const handlePageChange = (nextPage: number) => {

@@ -1,7 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { atom } from "jotai";
 import type { CharacterLeaderboardRender, SeasonBrief } from "../types/leaderboard";
-import { CacheDuration, generateCacheKey, getCache, setCache } from "../utils/cache";
 
 // ─────────────────────── Character Leaderboard State ───────────────────────
 
@@ -23,12 +22,11 @@ type FetchCharacterLeaderboardParams = {
   teamMode?: string;
   sortType?: string;
   page?: number;
-  skipCache?: boolean;
 } | undefined;
 
 /**
- * Fetches the character-specific leaderboard data with caching.
- * Cache duration: 1 hour (character leaderboards update moderately)
+ * Fetches the character-specific leaderboard data.
+ * Backend handles caching automatically.
  */
 export const fetchCharacterLeaderboardAtom = atom(
   null,
@@ -42,30 +40,12 @@ export const fetchCharacterLeaderboardAtom = atom(
     const teamMode = params?.teamMode ?? get(characterLeaderboardTeamModeAtom);
     const sortType = params?.sortType ?? get(characterLeaderboardSortTypeAtom);
     const page = Math.max(1, params?.page ?? get(characterLeaderboardPageAtom));
-    const skipCache = params?.skipCache === true;
 
     set(characterLeaderboardCharacterIdAtom, characterId);
     set(characterLeaderboardSeasonKeyAtom, seasonKey);
     set(characterLeaderboardTeamModeAtom, teamMode);
     set(characterLeaderboardSortTypeAtom, sortType);
     set(characterLeaderboardPageAtom, page);
-
-    // Check cache first
-    const cacheKey = generateCacheKey("fetch_character_leaderboard", {
-      characterId,
-      seasonKey,
-      teamMode,
-      sortType,
-      page,
-    });
-
-    if (!skipCache) {
-      const cached = getCache<CharacterLeaderboardRender>(cacheKey);
-      if (cached) {
-        set(characterLeaderboardResultAtom, cached);
-        return;
-      }
-    }
 
     set(characterLeaderboardLoadingAtom, true);
     set(characterLeaderboardErrorAtom, null);
@@ -79,8 +59,6 @@ export const fetchCharacterLeaderboardAtom = atom(
         page,
       });
       set(characterLeaderboardResultAtom, result);
-      // Cache for 1 hour
-      setCache(cacheKey, result, CacheDuration.MEDIUM);
     } catch (error) {
       console.error("fetch_character_leaderboard failed:", error);
       set(characterLeaderboardErrorAtom, String(error));
@@ -91,8 +69,8 @@ export const fetchCharacterLeaderboardAtom = atom(
 );
 
 /**
- * Fetches the list of available seasons with caching.
- * Cache duration: 7 days (seasons are relatively static)
+ * Fetches the list of available seasons.
+ * Backend handles caching automatically (7 days for static data).
  */
 export const fetchSeasonsAtom = atom(null, async (get, set) => {
   // Return if already loaded
@@ -100,24 +78,9 @@ export const fetchSeasonsAtom = atom(null, async (get, set) => {
     return;
   }
 
-  const cacheKey = generateCacheKey("fetch_seasons");
-  const cached = getCache<SeasonBrief[]>(cacheKey);
-
-  if (cached) {
-    set(seasonListAtom, cached);
-
-    // Set the current season as default
-    const currentSeason = cached.find((s) => s.isCurrent);
-    if (currentSeason) {
-      set(characterLeaderboardSeasonKeyAtom, currentSeason.key);
-    }
-    return;
-  }
-
   try {
     const seasons = await invoke<SeasonBrief[]>("fetch_seasons");
     set(seasonListAtom, seasons);
-    setCache(cacheKey, seasons, CacheDuration.STATIC);
 
     // Set the current season as default
     const currentSeason = seasons.find((s) => s.isCurrent);
