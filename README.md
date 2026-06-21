@@ -1,7 +1,7 @@
 # 项目结构文档
 
 ## 概览
-bserAnalysis 是一个基于 Tauri + React 的永恒回归(EternalReturn)游戏数据分析工具，提供玩家数据查询、角色分析、排行榜等功能 **所有API都来自dak.gg**。
+bserAnalysis 是一个基于 Tauri + React 的永恒轮回(EternalReturn)游戏数据分析工具，提供玩家数据查询、角色分析、排行榜等功能 **所有API都来自dak.gg**。
 
 ## 技术栈
 
@@ -225,18 +225,6 @@ dak.gg API
 排行数据 ← CharacterLeaderboardRender
 ```
 
-## 性能优化
-
-### 前端
-- **React.memo** - 避免不必要的组件重渲染
-- **useMemo/useCallback** - 缓存计算结果和回调函数
-- **虚拟滚动** - 长列表性能优化（待实现）
-- **代码分割** - 按路由懒加载组件（待实现）
-
-### 后端
-- **请求缓存** - 5分钟 TTL，减少 API 调用
-- **并行请求** - 使用 `try_join!` 并发获取数据
-- **连接池** - reqwest 自动管理 HTTP 连接
 
 ## 配置管理
 
@@ -245,24 +233,6 @@ dak.gg API
 # DLL 插件路径（可选）
 set DAKGG_PLUGIN_PATH=C:\path\to\dakgg-er-plugin.dll
 ```
-
-### 用户设置
-存储在本地 JSON 文件：
-- 角色别名映射
-- 玩家昵称别名
-- UI 偏好设置
-
-## 测试策略
-
-### 前端测试
-- 工具函数单元测试
-- 组件快照测试
-- E2E 集成测试
-
-### 后端测试
-- 单元测试（models, helpers）
-- 集成测试（API 客户端）
-- 模拟测试（避免实际 API 调用）
 
 ## 部署
 
@@ -293,27 +263,6 @@ npm run tauri build  # 构建 Tauri 应用
     - reqwest@0.11
     - serde@1
 
-## 未来改进
-
-### 功能增强
-- [ ] 实时数据订阅
-- [ ] 离线模式支持
-- [ ] 数据导出功能
-- [ ] 自定义仪表盘
-
-### 代码质量
-- [ ] 提取重复 UI 组件（Segmented, RefreshIcon）
-- [ ] 添加更完整的类型测试
-- [ ] 性能分析和优化
-- [ ] 国际化支持
-
-### 技术债务
-- [ ] 减少不必要的 `.clone()`（后端）
-- [ ] 统一格式化工具函数（前端）
-- [ ] 添加 API 文档注释
-- [ ] 集成 CI/CD 流程
-
----
 
 **最后更新：** 2026-06-21
 **维护者：** LoMu
