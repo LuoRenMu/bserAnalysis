@@ -1,10 +1,10 @@
 use std::{path::PathBuf, sync::LazyLock, time::Duration};
 
-use crate::request::cache::GAME_DATA_CACHE;
+use crate::request::cache::{CACHE, ttl};
 use crate::request::models::CharacterAnalysis;
 use crate::request::{
     error::{RequestError, Result},
-    helpers::{encode_component, mask_nickname},
+    helpers::{encode_component},
     manager::{ApiRequest, ResourceRequest, REQUEST_MANAGER},
     models::{
         DakGgCharacterImgType, DakGgCharacterStatsResponse, DakGgCharactersResponse,
@@ -43,7 +43,7 @@ pub struct EternalReturnDakGgApi;
 impl EternalReturnDakGgApi {
     pub async fn get_tiers() -> Result<DakGgTiersResponse> {
         // Check cache first
-        if let Some(cached) = GAME_DATA_CACHE.get_tiers() {
+        if let Some(cached) = CACHE.get::<DakGgTiersResponse>() {
             return Ok(cached);
         }
 
@@ -52,7 +52,7 @@ impl EternalReturnDakGgApi {
         let data: DakGgTiersResponse = dakgg_json(url).await?;
 
         // Store in cache
-        GAME_DATA_CACHE.set_tiers(data.clone());
+        CACHE.set(data.clone(), ttl::STATIC);
         Ok(data)
     }
 
@@ -82,18 +82,18 @@ impl EternalReturnDakGgApi {
     }
 
     pub async fn get_current_season() -> Result<DakGgCurrentSeasonResponse> {
-        if let Some(cached) = GAME_DATA_CACHE.get_current_season() {
+        if let Some(cached) = CACHE.get::<DakGgCurrentSeasonResponse>() {
             return Ok(cached);
         }
         let url = format!("/v0/current-season?hl={}", get_hl());
         let result: DakGgCurrentSeasonResponse = dakgg_json(url).await?;
-        GAME_DATA_CACHE.set_current_season(result.clone());
+        CACHE.set(result.clone(), ttl::DAILY);
         Ok(result)
     }
 
     pub async fn get_characters() -> Result<DakGgCharactersResponse> {
         // Check cache first
-        if let Some(cached) = GAME_DATA_CACHE.get_characters() {
+        if let Some(cached) = CACHE.get::<DakGgCharactersResponse>() {
             return Ok(cached);
         }
 
@@ -102,13 +102,13 @@ impl EternalReturnDakGgApi {
         let data: DakGgCharactersResponse = dakgg_json(url).await?;
 
         // Store in cache
-        GAME_DATA_CACHE.set_characters(data.clone());
+        CACHE.set(data.clone(), ttl::STATIC);
         Ok(data)
     }
 
     pub async fn get_items() -> Result<DakGgItemsResponse> {
         // Check cache first
-        if let Some(cached) = GAME_DATA_CACHE.get_items() {
+        if let Some(cached) = CACHE.get::<DakGgItemsResponse>() {
             return Ok(cached);
         }
 
@@ -117,13 +117,13 @@ impl EternalReturnDakGgApi {
         let data: DakGgItemsResponse = dakgg_json(url).await?;
 
         // Store in cache
-        GAME_DATA_CACHE.set_items(data.clone());
+        CACHE.set(data.clone(), ttl::STATIC);
         Ok(data)
     }
 
     pub async fn get_weapons() -> Result<DakGgWeaponResponse> {
         // Check cache first
-        if let Some(cached) = GAME_DATA_CACHE.get_weapons() {
+        if let Some(cached) = CACHE.get::<DakGgWeaponResponse>() {
             return Ok(cached);
         }
 
@@ -132,13 +132,13 @@ impl EternalReturnDakGgApi {
         let data: DakGgWeaponResponse = dakgg_json(url).await?;
 
         // Store in cache
-        GAME_DATA_CACHE.set_weapons(data.clone());
+        CACHE.set(data.clone(), ttl::STATIC);
         Ok(data)
     }
 
     pub async fn get_trait_skills() -> Result<DakGgTraitSkillsResponse> {
         // Check cache first
-        if let Some(cached) = GAME_DATA_CACHE.get_trait_skills() {
+        if let Some(cached) = CACHE.get::<DakGgTraitSkillsResponse>() {
             return Ok(cached);
         }
 
@@ -147,13 +147,13 @@ impl EternalReturnDakGgApi {
         let data: DakGgTraitSkillsResponse = dakgg_json(url).await?;
 
         // Store in cache
-        GAME_DATA_CACHE.set_trait_skills(data.clone());
+        CACHE.set(data.clone(), ttl::STATIC);
         Ok(data)
     }
 
     pub async fn get_areas() -> Result<DakGgAreasResponse> {
         // Check cache first
-        if let Some(cached) = GAME_DATA_CACHE.get_areas() {
+        if let Some(cached) = CACHE.get::<DakGgAreasResponse>() {
             return Ok(cached);
         }
 
@@ -162,13 +162,13 @@ impl EternalReturnDakGgApi {
         let data: DakGgAreasResponse = dakgg_json(url).await?;
 
         // Store in cache
-        GAME_DATA_CACHE.set_areas(data.clone());
+        CACHE.set(data.clone(), ttl::STATIC);
         Ok(data)
     }
 
     pub async fn get_infusions() -> Result<DakGgInfusionsResponse> {
         // Check cache first
-        if let Some(cached) = GAME_DATA_CACHE.get_infusions() {
+        if let Some(cached) = CACHE.get::<DakGgInfusionsResponse>() {
             return Ok(cached);
         }
 
@@ -177,13 +177,13 @@ impl EternalReturnDakGgApi {
         let data: DakGgInfusionsResponse = dakgg_json(url).await?;
 
         // Store in cache
-        GAME_DATA_CACHE.set_infusions(data.clone());
+        CACHE.set(data.clone(), ttl::STATIC);
         Ok(data)
     }
 
     pub async fn get_tactical_skills() -> Result<DakGgTacticalSkillResponse> {
         // Check cache first
-        if let Some(cached) = GAME_DATA_CACHE.get_tactical_skills() {
+        if let Some(cached) = CACHE.get::<DakGgTacticalSkillResponse>() {
             return Ok(cached);
         }
 
@@ -192,13 +192,13 @@ impl EternalReturnDakGgApi {
         let data: DakGgTacticalSkillResponse = dakgg_json(url).await?;
 
         // Store in cache
-        GAME_DATA_CACHE.set_tactical_skills(data.clone());
+        CACHE.set(data.clone(), ttl::STATIC);
         Ok(data)
     }
 
     pub async fn get_skills() -> Result<DakGgSkillsResponse> {
         // Check cache first
-        if let Some(cached) = GAME_DATA_CACHE.get_skills() {
+        if let Some(cached) = CACHE.get::<DakGgSkillsResponse>() {
             return Ok(cached);
         }
 
@@ -207,7 +207,7 @@ impl EternalReturnDakGgApi {
         let data: DakGgSkillsResponse = dakgg_json(url).await?;
 
         // Store in cache
-        GAME_DATA_CACHE.set_skills(data.clone());
+        CACHE.set(data.clone(), ttl::STATIC);
         Ok(data)
     }
 
@@ -230,7 +230,7 @@ impl EternalReturnDakGgApi {
             match REQUEST_MANAGER.call_json::<DakGgSyncResponse>(&api).await {
                 Ok(body) => {
                     if body.is_not_found() {
-                        return Err(RequestError::NicknameNotFound(mask_nickname(nickname)));
+                        return Err(RequestError::NicknameNotFound(nickname.to_string()));
                     }
                     if body.is_success() {
                         return Ok(body);
@@ -462,7 +462,7 @@ fn name_found_check(nickname: &str, body: &[u8]) -> Result<()> {
         .and_then(|error| error.get("status"))
         .and_then(Value::as_i64);
     if status == Some(404) {
-        return Err(RequestError::NicknameNotFound(mask_nickname(nickname)));
+        return Err(RequestError::NicknameNotFound(nickname.to_string()));
     }
     Ok(())
 }

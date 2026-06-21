@@ -539,19 +539,19 @@ function MatchCard({match, data, expanded, detailState, onToggle, characters, na
     );
 }
 
-function mapRender(render: PlayerSearchRender) {
+function mapRender(render: PlayerSearchRender, t: (key: string, params?: any) => string) {
     const summaryRows: [string, string][] = [
-        ["场次", render.data.play.toString()],
-        ["平均排名", render.data.avgRank],
-        ["平均击杀", render.data.avgKill],
-        ["平均助攻", render.data.avgAssists],
-        ["平均伤害", render.data.avgDmg],
+        [t('search.statsGames'), render.data.play.toString()],
+        [t('search.statsAvgRank'), render.data.avgRank],
+        [t('search.statsAvgKills'), render.data.avgKill],
+        [t('search.statsAvgAssists'), render.data.avgAssists],
+        [t('search.statsAvgDamage'), render.data.avgDmg],
         ["KDA", render.data.kda],
     ];
 
     const characterRows = render.characterUseStats.map<TableRow>((row) => ({
         name: row.characterName,
-        plays: `${row.characterPlay} 场游戏`,
+        plays: t('search.gamesPlayed', { count: row.characterPlay }),
         winRate: row.winRate,
         image: row.imageUrl,
         rp: signed(row.getRp),
@@ -561,7 +561,7 @@ function mapRender(render: PlayerSearchRender) {
 
     const partnerRows = render.recentPlayers.map<TableRow>((row) => ({
         name: row.nickname,
-        plays: `${row.plays} 场游戏`,
+        plays: t('search.gamesPlayed', { count: row.plays }),
         winRate: row.winRate,
         avgRank: row.avgRank,
         image: row.imageUrl,
@@ -571,7 +571,7 @@ function mapRender(render: PlayerSearchRender) {
         raw: match,
         gameId: match.gameId,
         version: match.version,
-        rank: match.modeId == 6 ? match.rank == 1 ? "胜利":  "失败" : match.rank == 99 ? "逃离":`#${match.rank}`,
+        rank: match.modeId == 6 ? match.rank == 1 ? t('search.victory') : t('search.defeat') : match.rank == 99 ? t('search.escaped') : `#${match.rank}`,
         modeId: match.modeId,
         mode: match.typeName,
         time: match.dateHour,
@@ -632,46 +632,7 @@ export default function Search() {
     // Wrap mapRender to use translations
     const view = useMemo(() => {
         if (!render) return null;
-        const mapped = mapRender(render);
-        // Override with translated labels
-        const summaryRows: [string, string][] = [
-            [t('search.games'), render.data.play.toString()],
-            [t('search.avgRank'), render.data.avgRank],
-            [t('search.avgKills'), render.data.avgKill],
-            [t('search.avgAssists'), render.data.avgAssists],
-            [t('search.avgDamage'), render.data.avgDmg],
-            ["KDA", render.data.kda],
-        ];
-
-        const characterRows = render.characterUseStats.map<TableRow>((row) => ({
-            name: row.characterName,
-            plays: t('search.gamesPlayed', { count: row.characterPlay }),
-            winRate: row.winRate,
-            image: row.imageUrl,
-            rp: signed(row.getRp),
-            avgRank: row.avgRank,
-            avgDmg: row.avgDmg.toString(),
-        }));
-
-        const partnerRows = render.recentPlayers.map<TableRow>((row) => ({
-            name: row.nickname,
-            plays: t('search.gamesPlayed', { count: row.plays }),
-            winRate: row.winRate,
-            avgRank: row.avgRank,
-            image: row.imageUrl,
-        }));
-
-        const matches = mapped.matches.map((match) => {
-            let rank = `#${match.raw.rank}`;
-            if (match.modeId === 6) {
-                rank = match.raw.rank === 1 ? t('search.victory') : t('search.defeat');
-            } else if (match.raw.rank === 99) {
-                rank = t('search.escaped');
-            }
-            return { ...match, rank };
-        });
-
-        return { summaryRows, characterRows, partnerRows, matches };
+        return mapRender(render, t);
     }, [render, t]);
 
     const visiblePages = useMemo(() => calculateVisiblePages(page, render?.totalPage ?? 0, PAGE_BUTTON_LIMIT), [page, render?.totalPage]);
@@ -686,36 +647,7 @@ export default function Search() {
     const [compareError, setCompareError] = useState<string | null>(null);
     const compareView = useMemo(() => {
         if (!compareRender) return null;
-        const mapped = mapRender(compareRender);
-        // Override with translated labels
-        const summaryRows: [string, string][] = [
-            [t('search.games'), compareRender.data.play.toString()],
-            [t('search.avgRank'), compareRender.data.avgRank],
-            [t('search.avgKills'), compareRender.data.avgKill],
-            [t('search.avgAssists'), compareRender.data.avgAssists],
-            [t('search.avgDamage'), compareRender.data.avgDmg],
-            ["KDA", compareRender.data.kda],
-        ];
-
-        const characterRows = compareRender.characterUseStats.map<TableRow>((row) => ({
-            name: row.characterName,
-            plays: t('search.gamesPlayed', { count: row.characterPlay }),
-            winRate: row.winRate,
-            image: row.imageUrl,
-            rp: signed(row.getRp),
-            avgRank: row.avgRank,
-            avgDmg: row.avgDmg.toString(),
-        }));
-
-        const partnerRows = compareRender.recentPlayers.map<TableRow>((row) => ({
-            name: row.nickname,
-            plays: t('search.gamesPlayed', { count: row.plays }),
-            winRate: row.winRate,
-            avgRank: row.avgRank,
-            image: row.imageUrl,
-        }));
-
-        return { summaryRows, characterRows, partnerRows, matches: mapped.matches };
+        return mapRender(compareRender, t);
     }, [compareRender, t]);
 
     const loadMatchDetail = useCallback(async (gameId: string, nickname: string, seasonId: number) => {

@@ -25,7 +25,7 @@ pub async fn set_language(hl: String) -> Result<(), String> {
     crate::config::set_language(&hl);
 
     // Update cache language and clear if changed
-    crate::request::cache::GAME_DATA_CACHE.update_language(&hl);
+    crate::request::cache::CACHE.update_language(&hl);
 
     Ok(())
 }

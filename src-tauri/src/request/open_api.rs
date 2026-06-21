@@ -11,7 +11,7 @@ use tokio::time::sleep;
 use crate::request::{
     dakgg_api::EternalReturnDakGgApi,
     error::{RequestError, Result},
-    helpers::{encode_component, mask_nickname},
+    helpers::{encode_component},
     manager::{ApiRequest, ResponseBytes, REQUEST_MANAGER},
     models::{
         now_local_naive, BaseGameDataResponse, BattleUserGamesResponse, GameDataSeasonResponse,
@@ -42,7 +42,7 @@ impl EternalReturnOpenApi {
         let body: Value = serde_json::from_slice(&response.bytes)?;
 
         if response.status == 404 || json_code_is_404(&body) {
-            return Err(RequestError::NicknameNotFound(mask_nickname(nickname)));
+            return Err(RequestError::NicknameNotFound(nickname.to_string()));
         }
 
         if !response.is_success() {

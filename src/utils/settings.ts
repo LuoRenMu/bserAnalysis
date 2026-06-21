@@ -15,7 +15,7 @@ export interface AppSettings {
 }
 
 export const DEFAULT_DLL_PATH =
-  "resources\\dakgg-client\\resources\\app.asar.unpacked\\node_modules\\@playxp\\dakgg-er-plugin\\build\\dakgg-er-plugin.dll";
+  "dakgg-er-plugin.dll";
 
 const STORAGE_KEY = "bser_analysis_settings_v1";
 const STORE_FILE = "settings.json";
