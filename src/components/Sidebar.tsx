@@ -1,9 +1,11 @@
 import {NavLink} from "react-router-dom";
 import {useAtomValue} from "jotai";
+import {useTranslation} from "react-i18next";
 import {activeAtom} from "../store";
 import {useState} from "react";
 
 export default function Sidebar() {
+    const {t} = useTranslation();
     const active = useAtomValue(activeAtom);
     const [leaderboardExpanded, setLeaderboardExpanded] = useState(false);
 
@@ -27,7 +29,7 @@ export default function Sidebar() {
                         <line x1="1.5" y1="5.5" x2="14.5" y2="5.5"/>
                         <line x1="5.5" y1="1.5" x2="5.5" y2="14.5"/>
                     </svg>
-                    Overlay
+                    {t('nav.overlay')}
                 </NavLink>
                 <NavLink to="/search"
                          className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors
@@ -40,7 +42,7 @@ export default function Sidebar() {
                         <circle cx="7" cy="7" r="4.5"/>
                         <line x1="10.2" y1="10.2" x2="14" y2="14"/>
                     </svg>
-                    Search
+                    {t('nav.search')}
                 </NavLink>
                 <NavLink to="/characters"
                          className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors
@@ -53,7 +55,7 @@ export default function Sidebar() {
                         <circle cx="8" cy="5" r="3"/>
                         <path d="M2.5 14a5.5 5.5 0 0 1 11 0"/>
                     </svg>
-                    Characters
+                    {t('nav.characters')}
                 </NavLink>
 
                 {/* Leaderboard with submenu */}
@@ -71,7 +73,7 @@ export default function Sidebar() {
                                 <rect x="6.5" y="3.5" width="3" height="10.5" rx="0.5"/>
                                 <rect x="11" y="10" width="3" height="4" rx="0.5"/>
                             </svg>
-                            Leaderboard
+                            {t('nav.leaderboard')}
                         </div>
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
                              strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
@@ -88,7 +90,7 @@ export default function Sidebar() {
                                                 hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60
                                                 aria-[current=page]:bg-neutral-200/80 aria-[current=page]:dark:bg-neutral-800/80
                                                 aria-[current=page]:text-neutral-900 aria-[current=page]:dark:text-neutral-100">
-                                Player Rank
+                                {t('leaderboard.playerRank')}
                             </NavLink>
                             <NavLink to="/character-leaderboard"
                                      className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors
@@ -96,7 +98,7 @@ export default function Sidebar() {
                                                 hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60
                                                 aria-[current=page]:bg-neutral-200/80 aria-[current=page]:dark:bg-neutral-800/80
                                                 aria-[current=page]:text-neutral-900 aria-[current=page]:dark:text-neutral-100">
-                                Hero Rank
+                                {t('leaderboard.heroRank')}
                             </NavLink>
                             <NavLink to="/character-stats"
                                      className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors
@@ -104,7 +106,7 @@ export default function Sidebar() {
                                                 hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60
                                                 aria-[current=page]:bg-neutral-200/80 aria-[current=page]:dark:bg-neutral-800/80
                                                 aria-[current=page]:text-neutral-900 aria-[current=page]:dark:text-neutral-100">
-                                Hero Stats
+                                {t('leaderboard.heroStats')}
                             </NavLink>
                         </div>
                     )}
@@ -121,7 +123,7 @@ export default function Sidebar() {
                         <circle cx="8" cy="8" r="2.5"/>
                         <path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/>
                     </svg>
-                    Settings
+                    {t('nav.settings')}
                 </NavLink>
             </nav>
 
@@ -132,7 +134,7 @@ export default function Sidebar() {
             <div className="flex items-center gap-2 px-4 py-3 border-t border-neutral-200 dark:border-neutral-800">
                 <span className={`inline-block w-2 h-2 rounded-full ${active ? "bg-green-500" : "bg-red-500"}`}/>
                 <span className="text-xs text-neutral-500 dark:text-neutral-400 select-none">
-                    {active ? "Active" : "Inactive"}
+                    {active ? t('common.active') : t('common.inactive')}
                 </span>
             </div>
         </aside>

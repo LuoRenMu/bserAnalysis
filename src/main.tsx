@@ -4,6 +4,7 @@ import { Provider, createStore } from "jotai";
 import Router from "./router";
 import { initLogForwarding } from "./utils/log";
 import { loadSettings, settingsBaseAtom } from "./utils/settings";
+import "./i18n";
 
 initLogForwarding();
 

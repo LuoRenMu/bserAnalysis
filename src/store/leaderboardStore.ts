@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { atom } from "jotai";
 import type { LeaderboardRender } from "../types/leaderboard";
+import { CacheDuration, generateCacheKey, getCache, setCache } from "../utils/cache";
 
 // ─────────────────────── Leaderboard State ───────────────────────
 
@@ -30,12 +31,13 @@ type FetchLeaderboardParams = {
   server?: string;
   team?: string;
   page?: number;
-  refresh?: boolean;
+  skipCache?: boolean;
   seasonId?: number | null;
 } | undefined;
 
 /**
- * Fetches the general leaderboard data.
+ * Fetches the general leaderboard data with caching.
+ * Cache duration: 1 hour (leaderboards update frequently but not every second)
  */
 export const fetchLeaderboardAtom = atom(null, async (get, set, params?: FetchLeaderboardParams) => {
   if (get(leaderboardLoadingAtom)) return;
@@ -43,7 +45,7 @@ export const fetchLeaderboardAtom = atom(null, async (get, set, params?: FetchLe
   const server = params?.server ?? get(leaderboardServerAtom);
   const team = params?.team ?? get(leaderboardTeamAtom);
   const page = Math.max(1, params?.page ?? get(leaderboardPageAtom));
-  const refresh = params?.refresh === true;
+  const skipCache = params?.skipCache === true;
   const seasonId = params?.seasonId !== undefined ? params.seasonId : get(leaderboardSeasonIdAtom);
 
   set(leaderboardServerAtom, server);
@@ -52,6 +54,24 @@ export const fetchLeaderboardAtom = atom(null, async (get, set, params?: FetchLe
   if (params?.seasonId !== undefined) {
     set(leaderboardSeasonIdAtom, seasonId);
   }
+
+  // Check cache first
+  const cacheKey = generateCacheKey("fetch_leaderboard", {
+    server,
+    team,
+    page,
+    seasonId,
+  });
+
+  if (!skipCache) {
+    const cached = getCache<LeaderboardRender>(cacheKey);
+    if (cached) {
+      set(leaderboardResultAtom, cached);
+      set(leaderboardPageAtom, cached.page);
+      return;
+    }
+  }
+
   set(leaderboardLoadingAtom, true);
   set(leaderboardErrorAtom, null);
 
@@ -60,11 +80,12 @@ export const fetchLeaderboardAtom = atom(null, async (get, set, params?: FetchLe
       server,
       team,
       page,
-      refresh,
       seasonId,
     });
     set(leaderboardResultAtom, result);
     set(leaderboardPageAtom, result.page);
+    // Cache for 1 hour - leaderboards change moderately
+    setCache(cacheKey, result, CacheDuration.MEDIUM);
   } catch (error) {
     console.error("fetch_leaderboard failed:", error);
     set(leaderboardErrorAtom, String(error));

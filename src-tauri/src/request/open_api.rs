@@ -17,7 +17,7 @@ use crate::request::{
         now_local_naive, BaseGameDataResponse, BattleUserGamesResponse, GameDataSeasonResponse,
         UserNickNameResponse, UserStatsResponse,
     },
-    types::{CacheTime, MatchingMode, MatchingTeamMode},
+    types::{MatchingMode, MatchingTeamMode},
 };
 
 static API_KEY_HEADERS: LazyLock<RwLock<HashMap<String, String>>> =
@@ -37,7 +37,6 @@ impl EternalReturnOpenApi {
         let encoded = encode_component(nickname);
         let api = open_request(
             format!("/v1/user/nickname?query={encoded}"),
-            CacheTime::Minutes,
         );
         let response = open_call(&api).await?;
         let body: Value = serde_json::from_slice(&response.bytes)?;
@@ -56,7 +55,6 @@ impl EternalReturnOpenApi {
     pub async fn get_user_stats_v1(user_id: &str, season_id: i32) -> Result<UserStatsResponse> {
         Self::open_json(
             format!("/v1/user/stats/uid/{user_id}/{season_id}"),
-            CacheTime::Minutes,
         )
         .await
     }
@@ -71,26 +69,25 @@ impl EternalReturnOpenApi {
                 "/v2/user/stats/uid/{user_id}/{season_id}/{}",
                 matching_mode.value()
             ),
-            CacheTime::Minutes,
         )
         .await
     }
 
     pub async fn get_games_by_user_id(user_id: &str) -> Result<BattleUserGamesResponse> {
-        Self::open_json(format!("/v1/user/games/uid/{user_id}"), CacheTime::Minutes).await
+        Self::open_json(format!("/v1/user/games/uid/{user_id}")).await
     }
 
     pub async fn get_game_by_game_id(game_id: i64) -> Result<BattleUserGamesResponse> {
-        Self::open_json(format!("/v1/games/{game_id}"), CacheTime::Minutes).await
+        Self::open_json(format!("/v1/games/{game_id}")).await
     }
 
     pub async fn get_game_data_hash() -> Result<BaseGameDataResponse<Value>> {
-        Self::open_json("/v2/data/hash", CacheTime::Week).await
+        Self::open_json("/v2/data/hash").await
     }
 
     pub async fn get_game_data_season() -> Result<GameDataSeasonResponse> {
         let seasons: BaseGameDataResponse<Vec<GameDataSeasonResponse>> =
-            Self::open_json("/v1/data/Season", CacheTime::Week).await?;
+            Self::open_json("/v1/data/Season").await?;
         let season = seasons
             .data
             .into_iter()
@@ -110,7 +107,7 @@ impl EternalReturnOpenApi {
     pub async fn get_game_data_by_meta_type(
         meta_type: &str,
     ) -> Result<BaseGameDataResponse<Value>> {
-        Self::open_json(format!("/v2/data/{meta_type}"), CacheTime::Week).await
+        Self::open_json(format!("/v2/data/{meta_type}")).await
     }
 
     pub async fn get_global_rank(
@@ -119,24 +116,23 @@ impl EternalReturnOpenApi {
     ) -> Result<Value> {
         Self::open_json(
             format!("/v1/rank/top/{season_id}/{}", matching_team_mode.value()),
-            CacheTime::Hour,
         )
         .await
     }
 
-    async fn open_json<T>(url: impl Into<String>, cache_time: CacheTime) -> Result<T>
+    async fn open_json<T>(url: impl Into<String>) -> Result<T>
     where
         T: DeserializeOwned,
     {
-        let api = open_request(url, cache_time);
+        let api = open_request(url);
         let response = open_call(&api).await?;
         response.ensure_success(&api)?;
         Ok(serde_json::from_slice(&response.bytes)?)
     }
 }
 
-fn open_request(url: impl Into<String>, cache_time: CacheTime) -> ApiRequest {
-    let mut api = ApiRequest::new(BASE_URL, url, cache_time);
+fn open_request(url: impl Into<String>) -> ApiRequest {
+    let mut api = ApiRequest::new(BASE_URL, url);
     for (key, value) in API_KEY_HEADERS.read().expect("api key map poisoned").iter() {
         api.headers.insert(key.clone(), value.clone());
     }

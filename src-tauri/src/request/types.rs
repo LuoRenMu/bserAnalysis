@@ -1,29 +1,6 @@
-use std::time::Duration;
-
 use crate::request::dakgg_api::EternalReturnDakGgApi;
 use crate::request::error::Result;
 use crate::request::models::DakGgCharacterImgType;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum CacheTime {
-    Minutes,
-    Hour,
-    Day,
-    Week,
-    Null,
-}
-
-impl CacheTime {
-    pub fn duration(self) -> Option<Duration> {
-        match self {
-            Self::Minutes => Some(Duration::from_secs(5 * 60)),
-            Self::Hour => Some(Duration::from_secs(60 * 60)),
-            Self::Day => Some(Duration::from_secs(5 * 24 * 60 * 60)),
-            Self::Week => Some(Duration::from_secs(7 * 24 * 60 * 60)),
-            Self::Null => None,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MatchingMode {

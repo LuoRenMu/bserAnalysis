@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {useAtom, useAtomValue} from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
+import { useTranslation } from "react-i18next";
 import type { CharacterBrief } from "../types/bser";
 import { appSettingsAtom, matchesAliasQuery, resolveCharacterName } from "../utils/settings";
-import {characterBriefAtom} from "../store";
+import { characterBriefAtom, characterBriefLoadingAtom, fetchCharactersAtom } from "../store";
 
 function SearchIcon() {
     return (
@@ -23,48 +24,41 @@ function SearchIcon() {
     );
 }
 
-/** 职能英文 → 中文，及分组展示顺序。 */
-const ROLE_NAMES: Record<string, string> = {
-    Warrior: "战士",
-    Mage: "法师",
-    Marksman: "射手",
-    Tanker: "坦克",
-    Assasin: "刺客",
-    Supporter: "辅助",
+/** 职能英文 → 翻译key */
+const ROLE_TRANSLATION_KEYS: Record<string, string> = {
+    Warrior: "characters.roles.warrior",
+    Mage: "characters.roles.mage",
+    Marksman: "characters.roles.marksman",
+    Tanker: "characters.roles.tanker",
+    Assassin: "characters.roles.assassin",
+    Supporter: "characters.roles.supporter",
 };
-const ROLE_ORDER = ["Warrior", "Marksman", "Mage", "Assasin", "Tanker", "Supporter"];
+const ROLE_ORDER = ["Warrior", "Marksman", "Mage", "Assassin", "Tanker", "Supporter"];
 
 function primaryRole(character: CharacterBrief) {
     return character.roles[0] ?? "Other";
 }
 
 export default function Characters() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const settings = useAtomValue(appSettingsAtom);
-    const [characters] = useAtom<CharacterBrief[]>(characterBriefAtom);
+    const characters = useAtomValue(characterBriefAtom);
+    const loading = useAtomValue(characterBriefLoadingAtom);
+    const fetchCharacters = useSetAtom(fetchCharactersAtom);
     const [query, setQuery] = useState("");
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        let cancelled = false;
-        setLoading(true);
-        setError(null);
         void (async () => {
             try {
-                if (cancelled) return;
+                await fetchCharacters();
             } catch (err) {
-                if (cancelled) return;
                 console.error("fetch_characters failed:", err);
                 setError(String(err));
-            } finally {
-                if (!cancelled) setLoading(false);
             }
         })();
-        return () => {
-            cancelled = true;
-        };
-    }, []);
+    }, [fetchCharacters]);
 
     const groups = useMemo(() => {
         const keyword = query.trim().toLowerCase();
@@ -106,7 +100,7 @@ export default function Characters() {
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
                             type="search"
-                            placeholder="搜索角色名称"
+                            placeholder={t('characters.searchPlaceholder')}
                             className="h-10 w-full rounded border border-neutral-300 bg-white pl-9 pr-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-neutral-600"
                         />
                     </div>
@@ -119,7 +113,7 @@ export default function Characters() {
                     className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">{error}</div>}
 
                 {loading && characters.length === 0 ? (
-                    <div className="mt-32 text-center text-sm text-neutral-500 dark:text-neutral-400">Loading...</div>
+                    <div className="mt-32 text-center text-sm text-neutral-500 dark:text-neutral-400">{t('common.loading')}</div>
                 ) : (
                     // 网格限高，超出滚动查看更多。
                     <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
@@ -127,7 +121,7 @@ export default function Characters() {
                             <div key={group.role}>
                                 <div className="mb-2 flex items-center gap-2">
                                     <h2 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
-                                        {ROLE_NAMES[group.role] ?? group.role}
+                                        {t(ROLE_TRANSLATION_KEYS[group.role] ?? group.role)}
                                     </h2>
                                     <span className="text-xs text-neutral-400">{group.characters.length}</span>
                                 </div>
@@ -157,7 +151,7 @@ export default function Characters() {
 
                         {!loading && !error && matchedCount === 0 && (
                             <div className="mt-32 text-center text-sm text-neutral-500 dark:text-neutral-400">
-                                没有匹配的角色
+                                {t('characters.noMatches')}
                             </div>
                         )}
                     </div>

@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useNavigate } from "react-router-dom";
-import { invoke } from "@tauri-apps/api/core";
 import {
   fetchLeaderboardAtom,
   leaderboardErrorAtom,
@@ -12,16 +11,11 @@ import {
   leaderboardSeasonIdAtom,
   searchPlayerAtom,
   searchQueryAtom,
+  seasonListAtom,
+  fetchSeasonsAtom,
 } from "../store";
 import type { LeaderboardCharacter, LeaderboardRow } from "../types/leaderboard";
 import { calculateVisiblePages } from "../utils/pagination";
-
-interface SeasonBrief {
-  id: number;
-  key: string;
-  name: string;
-  isCurrent: boolean;
-}
 
 const SERVER_OPTIONS = [
   { label: "亚服", value: "seoul" },
@@ -182,20 +176,16 @@ export default function Leaderboard() {
   const setSearchQuery = useSetAtom(searchQueryAtom);
   const searchPlayer = useSetAtom(searchPlayerAtom);
 
-  const [seasons, setSeasons] = useState<SeasonBrief[]>([]);
-  const [seasonsLoading, setSeasonsLoading] = useState(false);
+  const seasons = useAtomValue(seasonListAtom);
+  const fetchSeasons = useSetAtom(fetchSeasonsAtom);
 
   useEffect(() => {
     if (!result) void fetchLeaderboard();
   }, [fetchLeaderboard, result]);
 
   useEffect(() => {
-    setSeasonsLoading(true);
-    invoke<SeasonBrief[]>("fetch_seasons")
-      .then(setSeasons)
-      .catch(console.error)
-      .finally(() => setSeasonsLoading(false));
-  }, []);
+    void fetchSeasons();
+  }, [fetchSeasons]);
 
   const visiblePages = calculateVisiblePages(page, result?.totalPage ?? 0, PAGE_BUTTON_LIMIT);
 
@@ -205,8 +195,8 @@ export default function Leaderboard() {
 
   const rankDeltas = useMemo(() => {
     const deltas = new Map<number, number>();
-    if (!result || !snapshotKey) return deltas;
-    let prev: Record<string, number> = {};
+    if (!result || !snapshotKey || !Array.isArray(result.rows)) return deltas;
+    let prev: Record<string, number>;
     try {
       prev = JSON.parse(localStorage.getItem(snapshotKey) ?? "{}");
     } catch {
@@ -220,8 +210,8 @@ export default function Leaderboard() {
   }, [result, snapshotKey]);
 
   useEffect(() => {
-    if (!result || !snapshotKey) return;
-    let prev: Record<string, number> = {};
+    if (!result || !snapshotKey || !Array.isArray(result.rows)) return;
+    let prev: Record<string, number>;
     try {
       prev = JSON.parse(localStorage.getItem(snapshotKey) ?? "{}");
     } catch {
@@ -253,7 +243,7 @@ export default function Leaderboard() {
 
   const handleRefresh = () => {
     if (loading) return;
-    void fetchLeaderboard({ refresh: true });
+    void fetchLeaderboard({ skipCache: true });
   };
 
   const handlePageChange = (nextPage: number) => {
@@ -310,7 +300,7 @@ export default function Leaderboard() {
               <select
                 value={seasonId === null ? "current" : String(seasonId)}
                 onChange={(e) => handleSeasonChange(e.target.value)}
-                disabled={loading || seasonsLoading}
+                disabled={loading}
                 className="h-8 rounded border border-neutral-300 bg-white px-2 text-xs text-neutral-900 outline-none disabled:cursor-wait disabled:opacity-60 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100"
               >
                 {seasons.map((season) => (
@@ -341,7 +331,7 @@ export default function Leaderboard() {
           </div>
         )}
 
-        {result && (<section className="overflow-x-auto rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+        {(result && result.totalCount != 0) ? (<section className="overflow-x-auto rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
           <div className="min-w-255">
             <div className={`${GRID} bg-neutral-800 px-3 py-2.5 text-xs font-semibold text-white`}>
               <div className="text-center">排名</div>
@@ -355,17 +345,15 @@ export default function Leaderboard() {
               <div className="text-right">常用英雄 / 使用率</div>
             </div>
 
-            {result?.rows.map((row) => (
+            {Array.isArray(result?.rows) && result.rows.map((row) => (
                 <LeaderboardTableRow key={row.userNum} row={row} delta={rankDeltas.get(row.userNum)} onSelect={handlePlayerSelect} />
             ))}
-
-            {(!result || result.rows.length === 0) && (
-                <div className="px-3 py-16 text-center text-sm font-semibold text-neutral-500 dark:text-neutral-400">
-                  {loading ? "加载中..." : "暂无数据"}
-                </div>
-            )}
           </div>
-        </section>)}
+        </section>) :(
+            <div className="rounded-lg border border-neutral-200 bg-white px-3 py-16 text-center text-sm font-semibold text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
+              没有数据
+            </div>
+        )}
 
         {visiblePages.length > 0 && (
           <nav className="mt-5 flex flex-wrap items-center justify-center gap-1.5" aria-label="Pagination">

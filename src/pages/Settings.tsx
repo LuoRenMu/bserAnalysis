@@ -1,9 +1,11 @@
 import {useEffect, useMemo, useRef, useState} from "react";
 import {useAtom, useAtomValue} from "jotai";
+import {useTranslation} from "react-i18next";
 import {appSettingsAtom, DEFAULT_DLL_PATH, type AliasEntry} from "../utils/settings";
 import {characterBriefAtom, injectAtom} from "../store";
 import type {CharacterBrief} from "../types/bser";
 import DoubleConfirmDialog from "../components/DoubleConfirmDialog";
+import LanguageSelector from "../components/LanguageSelector";
 
 function CharacterAliasPicker({
                                   value,
@@ -16,6 +18,7 @@ function CharacterAliasPicker({
     placeholder: string;
     characters: CharacterBrief[];
 }) {
+    const {t} = useTranslation();
     const rootRef = useRef<HTMLDivElement | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null);
     const [open, setOpen] = useState(false);
@@ -110,7 +113,7 @@ function CharacterAliasPicker({
                     <div className="max-h-72 overflow-y-auto p-1.5">
                         {filtered.length === 0 ? (
                             <div className="px-3 py-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
-                                没有匹配的角色
+                                {t('settings.noAliases')}
                             </div>
                         ) : (
                             filtered.map((character) => {
@@ -160,6 +163,7 @@ function AliasSection({
     onChange: (entries: AliasEntry[]) => void;
     characters?: CharacterBrief[];
 }) {
+    const {t} = useTranslation();
     const [source, setSource] = useState("");
     const [alias, setAlias] = useState("");
 
@@ -236,14 +240,14 @@ function AliasSection({
                         disabled={!source.trim() || !alias.trim()}
                         className="h-10 rounded bg-neutral-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-300"
                     >
-                        添加
+                        {t('common.add')}
                     </button>
                 </div>
 
                 {entries.length === 0 ? (
                     <div
                         className="rounded border border-dashed border-neutral-200 px-3 py-6 text-center text-sm text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
-                        暂无别名
+                        {t('settings.noAliases')}
                     </div>
                 ) : (
                     <div className="overflow-hidden rounded border border-neutral-200 dark:border-neutral-800">
@@ -275,7 +279,7 @@ function AliasSection({
                                         onClick={() => removeEntry(index)}
                                         className="h-8 rounded text-xs font-semibold text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30"
                                     >
-                                        删除
+                                        {t('common.delete')}
                                     </button>
                                 </div>
                             );
@@ -288,6 +292,7 @@ function AliasSection({
 }
 
 export default function Settings() {
+    const {t} = useTranslation();
     const [settings, setSettings] = useAtom(appSettingsAtom);
     const characters = useAtomValue(characterBriefAtom);
     const setInjected = useAtom(injectAtom)[1];
@@ -299,18 +304,18 @@ export default function Settings() {
             className="h-full overflow-auto bg-neutral-100 p-4 text-neutral-700 dark:bg-neutral-950 dark:text-neutral-300">
             <div className="mx-auto max-w-312.5 space-y-4">
                 <header>
-                    <h1 className="text-2xl font-black text-neutral-950 dark:text-neutral-50">设置</h1>
+                    <h1 className="text-2xl font-black text-neutral-950 dark:text-neutral-50">{t('settings.title')}</h1>
                     <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                      BETA VERSION 交流群:654087758
+                      {t('settings.betaVersion')}
                     </p>
                 </header>
 
                 <section
                     className="overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
                     <div className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
-                        <h2 className="text-sm font-bold text-neutral-950 dark:text-neutral-50">绑定玩家名称</h2>
+                        <h2 className="text-sm font-bold text-neutral-950 dark:text-neutral-50">{t('settings.boundPlayerSection')}</h2>
                         <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                            设置你的游戏内玩家名称，用于快速查询和个性化功能。
+                            {t('settings.boundPlayerDesc')}
                         </p>
                     </div>
 
@@ -320,7 +325,7 @@ export default function Settings() {
                             onChange={(event) =>
                                 setSettings((current) => ({...current, boundPlayerName: event.target.value}))
                             }
-                            placeholder="输入游戏内玩家名称"
+                            placeholder={t('settings.boundPlayerPlaceholder')}
                             spellCheck={false}
                             className="h-10 w-full rounded border border-neutral-300 bg-white px-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-500 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:focus:border-neutral-600"
                         />
@@ -330,9 +335,23 @@ export default function Settings() {
                 <section
                     className="overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
                     <div className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
-                        <h2 className="text-sm font-bold text-neutral-950 dark:text-neutral-50">游戏注入设置</h2>
+                        <h2 className="text-sm font-bold text-neutral-950 dark:text-neutral-50">{t('settings.languageSection')}</h2>
                         <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                           对游戏进行DLL注入,以获取对局详情
+                            {t('settings.languageDesc')}
+                        </p>
+                    </div>
+
+                    <div className="space-y-3 p-4">
+                        <LanguageSelector />
+                    </div>
+                </section>
+
+                <section
+                    className="overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+                    <div className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
+                        <h2 className="text-sm font-bold text-neutral-950 dark:text-neutral-50">{t('settings.injectionSection')}</h2>
+                        <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                           {t('settings.injectionDesc')}
                         </p>
                     </div>
 
@@ -357,18 +376,18 @@ export default function Settings() {
                                 className="h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-2 focus:ring-neutral-500 dark:border-neutral-700 dark:bg-neutral-800"
                             />
                             <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                                启用游戏注入
+                                {t('settings.enableInjection')}
                             </span>
                         </label>
                         <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                            你可以使用DakGG客户端的DLL
+                            {t('settings.dllPathHint1')}
                         </p>
                         <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                            位于DAK.GG\resources\app.asar.unpacked\node_modules\@playxp\dakgg-er-plugin\build\dakgg-er-plugin.dll
+                            {t('settings.dllPathHint2')}
                         </p>
                         <div className="pt-2 border-t border-neutral-200 dark:border-neutral-800">
                             <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                                DLL 插件路径
+                                {t('settings.dllPluginPath')}
                             </label>
                             <input
                                 value={settings.dllPath}
@@ -376,19 +395,19 @@ export default function Settings() {
                                     setSettings((current) => ({...current, dllPath: event.target.value}))
                                 }
                                 spellCheck={false}
-                                placeholder={DEFAULT_DLL_PATH}
+                                placeholder={t('settings.dllPathPlaceholder')}
                                 className="h-10 w-full rounded border border-neutral-300 bg-white px-3 font-mono text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-500 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:focus:border-neutral-600"
                             />
                             <div className="flex flex-wrap items-center justify-between gap-2 mt-2">
                                 <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                                    可填写绝对路径或相对项目根目录的路径
+                                    {t('settings.dllPathPlaceholder')}
                                 </div>
                                 <button
                                     type="button"
                                     onClick={() => setSettings((current) => ({...current, dllPath: DEFAULT_DLL_PATH}))}
                                     className="h-7 rounded border border-neutral-300 bg-white px-3 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200 dark:hover:bg-neutral-800"
                                 >
-                                    恢复默认
+                                    {t('settings.resetToDefault')}
                                 </button>
                             </div>
                         </div>
@@ -396,11 +415,11 @@ export default function Settings() {
                 </section>
 
                 <AliasSection
-                    title="角色别名"
-                    description="用于角色列表、对局记录、排行榜常用角色中的角色名称显示。"
+                    title={t('settings.characterAliasSection')}
+                    description={t('settings.characterAliasDesc')}
                     entries={settings.characterAliases}
-                    sourceLabel="搜索并选择角色"
-                    aliasLabel="显示别名"
+                    sourceLabel={t('settings.originalName')}
+                    aliasLabel={t('settings.aliasName')}
                     onChange={(characterAliases) =>
                         setSettings((current) => ({...current, characterAliases}))
                     }
@@ -408,11 +427,11 @@ export default function Settings() {
                 />
 
                 <AliasSection
-                    title="玩家别名"
-                    description="用于玩家查询页、排行榜中的玩家名称显示。"
+                    title={t('settings.playerAliasSection')}
+                    description={t('settings.playerAliasDesc')}
                     entries={settings.playerAliases}
-                    sourceLabel="原始玩家名称"
-                    aliasLabel="显示别名"
+                    sourceLabel={t('settings.originalName')}
+                    aliasLabel={t('settings.aliasName')}
                     onChange={(playerAliases) => setSettings((current) => ({...current, playerAliases}))}
                 />
             </div>
@@ -421,14 +440,14 @@ export default function Settings() {
                 open={confirmOpen}
                 showRememberOption={false}
                 firstStep={{
-                    title: "确认启用自动注入",
-                    description: "它与DakGG的客户端的允许原理别无二致",
-                    confirmLabel: "继续",
+                    title: t('settings.confirmEnableInjectionTitle'),
+                    description: t('settings.confirmEnableInjectionDesc'),
+                    confirmLabel: t('settings.confirmEnableInjectionContinue'),
                 }}
                 secondStep={{
-                    title: "再次确认",
-                    description: "请确认你了解此功能会在应用启动时自动注入游戏进程。你可以随时在此页面关闭此选项。",
-                    confirmLabel: "确认启用",
+                    title: t('settings.confirmEnableInjectionSecondTitle'),
+                    description: t('settings.confirmEnableInjectionSecondDesc'),
+                    confirmLabel: t('settings.confirmEnableInjectionConfirm'),
                 }}
                 onCancel={async () => {
                     setConfirmOpen(false);

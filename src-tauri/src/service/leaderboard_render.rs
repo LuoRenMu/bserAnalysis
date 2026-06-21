@@ -67,7 +67,6 @@ pub async fn assemble_leaderboard(
     server: DakGgServerName,
     team_mode: DakGgTeamMode,
     page: i32,
-    refresh: bool,
     season_id: Option<i32>,
 ) -> Result<LeaderboardRender> {
     let page = page.max(1);
@@ -88,7 +87,7 @@ pub async fn assemble_leaderboard(
     };
 
     let response =
-        EternalReturnDakGgApi::get_leaderboard(page, &season_type, server, team_mode, refresh)
+        EternalReturnDakGgApi::get_leaderboard(page, &season_type, server, team_mode)
             .await?;
     let characters = EternalReturnDakGgApi::get_characters().await?;
     let tiers = EternalReturnDakGgApi::get_tiers().await?;

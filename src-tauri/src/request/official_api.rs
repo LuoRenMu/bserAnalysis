@@ -2,7 +2,6 @@ use crate::request::{
     error::Result,
     manager::{ApiRequest, REQUEST_MANAGER},
     models::EternalReturnNews,
-    types::CacheTime,
 };
 
 const BASE_URL: &str = "https://playeternalreturn.com/api/v1/";
@@ -14,7 +13,6 @@ impl EternalReturnOfficialApi {
         let api = ApiRequest::new(
             BASE_URL,
             "posts/news?page=1&search_type=title&search_text=",
-            CacheTime::Null,
         )
         .header(
             "Accept-language",

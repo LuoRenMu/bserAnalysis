@@ -3,6 +3,7 @@ import type {ComponentProps} from "react";
 import {invoke} from "@tauri-apps/api/core";
 import {useAtom, useAtomValue, useSetAtom} from "jotai";
 import {useNavigate, type NavigateFunction} from "react-router-dom";
+import {useTranslation} from "react-i18next";
 import {
     characterBriefAtom,
     searchErrorAtom,
@@ -188,19 +189,20 @@ function RankSummary({data, season, mode, mmrStats}: {
     mode: string;
     mmrStats?: PlayerMmrStats | null
 }) {
+    const { t } = useTranslation();
     const statItems: StatRow[] = [
-        ["游戏场次", data.play.toString()],
-        ["平均 TK", data.avgTk],
-        ["平均击杀", data.avgKill],
-        ["平均助攻", data.avgAssists],
-        ["平均排名", data.avgRank],
-        ["平均伤害", data.avgDmg],
-        ["TOP 1", data.top1],
-        ["TOP 2", data.top2],
-        ["TOP 3", data.top3],
-        ["平均动物", data.avgAnimal],
-        ["平均信用", data.avgCredit],
-        ["平均视野", data.avgVision],
+        [t('search.statsGames'), data.play.toString()],
+        [t('search.statsAvgTK'), data.avgTk],
+        [t('search.statsAvgKills'), data.avgKill],
+        [t('search.statsAvgAssists'), data.avgAssists],
+        [t('search.statsAvgRank'), data.avgRank],
+        [t('search.statsAvgDamage'), data.avgDmg],
+        [t('search.statsTop1'), data.top1],
+        [t('search.statsTop2'), data.top2],
+        [t('search.statsTop3'), data.top3],
+        [t('search.statsAvgAnimals'), data.avgAnimal],
+        [t('search.statsAvgCredits'), data.avgCredit],
+        [t('search.statsAvgVision'), data.avgVision],
     ];
 
     return (
@@ -217,7 +219,7 @@ function RankSummary({data, season, mode, mmrStats}: {
                     <div
                         className="text-2xl font-black text-[#ca9372]">{data.rp == "NULL" ? data.kda + " KDA" : data.rp + " RP"} </div>
                     <div
-                        className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">{data.rp == "NULL" ? "平均 KDA" : data.rpName}</div>
+                        className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">{data.rp == "NULL" ? t('search.avgKDA') : data.rpName}</div>
                 </div>
             </div>
 
@@ -250,9 +252,10 @@ function StatsTable({
     onRowSelect?: (name: string) => void;
     onCharacterSelect?: (name: string) => void;
 }) {
+    const { t } = useTranslation();
     if (rows.length === 0) return null;
 
-    const isCharacterTable = title === "角色";
+    const isCharacterTable = title === t('search.tableCharacter');
     const handleClick = isCharacterTable ? onCharacterSelect : onRowSelect;
 
     return (
@@ -261,9 +264,9 @@ function StatsTable({
             <div
                 className="grid  grid-cols-[minmax(0,1fr)_72px_72px_82px] bg-neutral-800 px-3 py-2 text-xs font-semibold text-white">
                 <div>{title}</div>
-                <div className="text-center">{rows[0]?.rp ? "RP" : "胜率"}</div>
-                <div className="text-right">平均排名</div>
-                <div className="text-right">{rows[0]?.rp ? "平均伤害" : "场次"}</div>
+                <div className="text-center">{rows[0]?.rp ? t('search.rp') : t('search.winRate')}</div>
+                <div className="text-right">{t('search.avgRank')}</div>
+                <div className="text-right">{rows[0]?.rp ? t('search.avgDamage') : t('search.games')}</div>
             </div>
             {rows.map((row) => (
                 <div
@@ -297,19 +300,20 @@ function StatsTable({
 
 
 function RecentSummary({summary}: { summary?: PlayerSummary | null }) {
+    const { t } = useTranslation();
     if (!summary) return null;
 
     return (
         <section
             className="overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
             <h2 className="border-b border-neutral-200 px-4 py-3 text-lg font-semibold text-neutral-950 dark:border-neutral-800 dark:text-neutral-50">
-                最近游戏总结
+                {t('search.recentSummary')}
             </h2>
             <div className="grid grid-cols-3 gap-3 px-4 py-4 text-center">
                 {[
-                    [`最近 ${summary.count} 场胜场`, summary.wins],
-                    [`最近 ${summary.count} 场平均排名`, `#${summary.avgRank}`],
-                    [`最近 ${summary.count} 场平均伤害`, summary.avgDmg],
+                    [t('search.recentWins', { count: summary.count }), summary.wins],
+                    [t('search.recentAvgRank', { count: summary.count }), `#${summary.avgRank}`],
+                    [t('search.recentAvgDamage', { count: summary.count }), summary.avgDmg],
                 ].map(([label, value]) => (
                     <div key={label} className="min-w-0">
                         <div className="truncate text-xs text-neutral-500">{label}</div>
@@ -424,6 +428,8 @@ function MatchCard({match, data, expanded, detailState, onToggle, characters, na
     characters: CharacterBrief[];
     navigate: NavigateFunction;
 }) {
+    const { t } = useTranslation();
+
     return (
         <article style={{minWidth: "700px"}}
                  className="relative mt-5 rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
@@ -499,14 +505,14 @@ function MatchCard({match, data, expanded, detailState, onToggle, characters, na
                         {match.modeId === 6 ? (
                             <>
                                 <InfusionRow raw={match.boughtInfusion} data={data}/>
-                                <div className="mt-1 truncate text-xs text-neutral-500">灌注</div>
+                                <div className="mt-1 truncate text-xs text-neutral-500">{t('search.infusion')}</div>
                             </>
                         ) : (
                             <>
                                 <div className="truncate text-sm font-bold text-neutral-950 dark:text-neutral-50">
                                     {match.route}
                                 </div>
-                                <div className="mt-1 truncate text-xs text-neutral-500">路线 ID</div>
+                                <div className="mt-1 truncate text-xs text-neutral-500">{t('search.routeId')}</div>
                             </>
                         )}
                     </div>
@@ -610,14 +616,8 @@ function accentForRank(rank: number,isCobalt:boolean=false) {
 
 const PAGE_BUTTON_LIMIT = 20;
 
-const MODE_OPTIONS: { label: string; value: number }[] = [
-    {label: "全部", value: 0},
-    {label: "排位", value: 3},
-    {label: "普通", value: 2},
-    {label: "钴协议", value: 6},
-];
-
 export default function Search() {
+    const { t } = useTranslation();
     const [query, setQuery] = useAtom(searchQueryAtom);
     const navigate = useNavigate();
     const gameData = useGameData();
@@ -628,7 +628,52 @@ export default function Search() {
     const [page, setPage] = useAtom(searchPageAtom);
     const [mode, setMode] = useAtom(searchModeAtom);
     const searchPlayer = useSetAtom(searchPlayerAtom);
-    const view = useMemo(() => (render ? mapRender(render) : null), [render]);
+
+    // Wrap mapRender to use translations
+    const view = useMemo(() => {
+        if (!render) return null;
+        const mapped = mapRender(render);
+        // Override with translated labels
+        const summaryRows: [string, string][] = [
+            [t('search.games'), render.data.play.toString()],
+            [t('search.avgRank'), render.data.avgRank],
+            [t('search.avgKills'), render.data.avgKill],
+            [t('search.avgAssists'), render.data.avgAssists],
+            [t('search.avgDamage'), render.data.avgDmg],
+            ["KDA", render.data.kda],
+        ];
+
+        const characterRows = render.characterUseStats.map<TableRow>((row) => ({
+            name: row.characterName,
+            plays: t('search.gamesPlayed', { count: row.characterPlay }),
+            winRate: row.winRate,
+            image: row.imageUrl,
+            rp: signed(row.getRp),
+            avgRank: row.avgRank,
+            avgDmg: row.avgDmg.toString(),
+        }));
+
+        const partnerRows = render.recentPlayers.map<TableRow>((row) => ({
+            name: row.nickname,
+            plays: t('search.gamesPlayed', { count: row.plays }),
+            winRate: row.winRate,
+            avgRank: row.avgRank,
+            image: row.imageUrl,
+        }));
+
+        const matches = mapped.matches.map((match) => {
+            let rank = `#${match.raw.rank}`;
+            if (match.modeId === 6) {
+                rank = match.raw.rank === 1 ? t('search.victory') : t('search.defeat');
+            } else if (match.raw.rank === 99) {
+                rank = t('search.escaped');
+            }
+            return { ...match, rank };
+        });
+
+        return { summaryRows, characterRows, partnerRows, matches };
+    }, [render, t]);
+
     const visiblePages = useMemo(() => calculateVisiblePages(page, render?.totalPage ?? 0, PAGE_BUTTON_LIMIT), [page, render?.totalPage]);
     const [expandedMatches, setExpandedMatches] = useState<Set<string>>(() => new Set());
     const [matchDetails, setMatchDetails] = useState<Record<string, MatchDetailState>>({});
@@ -639,7 +684,39 @@ export default function Search() {
     const [compareRender, setCompareRender] = useState<PlayerSearchRender | null>(null);
     const [compareLoading, setCompareLoading] = useState(false);
     const [compareError, setCompareError] = useState<string | null>(null);
-    const compareView = useMemo(() => (compareRender ? mapRender(compareRender) : null), [compareRender]);
+    const compareView = useMemo(() => {
+        if (!compareRender) return null;
+        const mapped = mapRender(compareRender);
+        // Override with translated labels
+        const summaryRows: [string, string][] = [
+            [t('search.games'), compareRender.data.play.toString()],
+            [t('search.avgRank'), compareRender.data.avgRank],
+            [t('search.avgKills'), compareRender.data.avgKill],
+            [t('search.avgAssists'), compareRender.data.avgAssists],
+            [t('search.avgDamage'), compareRender.data.avgDmg],
+            ["KDA", compareRender.data.kda],
+        ];
+
+        const characterRows = compareRender.characterUseStats.map<TableRow>((row) => ({
+            name: row.characterName,
+            plays: t('search.gamesPlayed', { count: row.characterPlay }),
+            winRate: row.winRate,
+            image: row.imageUrl,
+            rp: signed(row.getRp),
+            avgRank: row.avgRank,
+            avgDmg: row.avgDmg.toString(),
+        }));
+
+        const partnerRows = compareRender.recentPlayers.map<TableRow>((row) => ({
+            name: row.nickname,
+            plays: t('search.gamesPlayed', { count: row.plays }),
+            winRate: row.winRate,
+            avgRank: row.avgRank,
+            image: row.imageUrl,
+        }));
+
+        return { summaryRows, characterRows, partnerRows, matches: mapped.matches };
+    }, [compareRender, t]);
 
     const loadMatchDetail = useCallback(async (gameId: string, nickname: string, seasonId: number) => {
         setMatchDetails((prev) => ({
@@ -706,7 +783,7 @@ export default function Search() {
 
     const handleRefresh = () => {
         setPage(1);
-        void searchPlayer({refresh: true, page: 1});
+        void searchPlayer({skipCache: true, page: 1});
         // 比较模式下也刷新第二个玩家
         if (compareMode && compareQuery.trim()) {
             void handleCompareSubmit();
@@ -745,8 +822,8 @@ export default function Search() {
                 <div className={`transition-all duration-500 ease-out ${render ? "translate-y-0" : "translate-y-[34vh]"}`}>
                     {!render && (
                         <div className="mb-4 text-center select-none">
-                            <h1 className="text-3xl font-black text-neutral-900 dark:text-neutral-100">玩家查询</h1>
-                            <p className="mt-1 text-sm text-neutral-500">输入昵称查询对局战绩</p>
+                            <h1 className="text-3xl font-black text-neutral-900 dark:text-neutral-100">{t('search.title')}</h1>
+                            <p className="mt-1 text-sm text-neutral-500">{t('search.subtitle')}</p>
                         </div>
                     )}
                     <form onSubmit={handleSubmit} className="mb-4 space-y-3">
@@ -761,7 +838,7 @@ export default function Search() {
                                             value={query}
                                             onChange={(event) => setQuery(event.target.value)}
                                             type="search"
-                                            placeholder="玩家 1"
+                                            placeholder={t('search.player1Placeholder')}
                                             className="h-10 w-full rounded border border-neutral-300 bg-white pl-9 pr-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-neutral-600"
                                         />
                                     </div>
@@ -773,7 +850,7 @@ export default function Search() {
                                             value={compareQuery}
                                             onChange={(event) => setCompareQuery(event.target.value)}
                                             type="search"
-                                            placeholder="玩家 2"
+                                            placeholder={t('search.player2Placeholder')}
                                             className="h-10 w-full rounded border border-blue-500 bg-white pl-9 pr-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-blue-600 dark:border-blue-600 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-blue-500"
                                         />
                                     </div>
@@ -787,7 +864,7 @@ export default function Search() {
                                         value={query}
                                         onChange={(event) => setQuery(event.target.value)}
                                         type="search"
-                                        placeholder="搜索玩家昵称"
+                                        placeholder={t('search.placeholder')}
                                         className="h-10 w-full rounded border border-neutral-300 bg-white pl-9 pr-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-neutral-600"
                                     />
                                 </div>
@@ -797,14 +874,14 @@ export default function Search() {
                                 disabled={loading || (compareMode && compareLoading)}
                                 className="h-10 rounded bg-neutral-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-neutral-700 disabled:cursor-wait disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-300"
                             >
-                                {(loading || compareLoading) ? "Loading" : "Search"}
+                                {(loading || compareLoading) ? t('search.loadingButton') : t('search.searchButton')}
                             </button>
                             <button
                                 type="button"
                                 onClick={handleRefresh}
                                 disabled={loading || !query.trim()}
-                                title="同步并刷新"
-                                aria-label="同步并刷新"
+                                title={t('search.refreshTooltip')}
+                                aria-label={t('search.refreshTooltip')}
                                 className="group flex h-10 w-10 shrink-0 items-center justify-center rounded border border-neutral-300 bg-white text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
                             >
                                 <RefreshIcon
@@ -827,17 +904,22 @@ export default function Search() {
                                         : "border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
                                 }`}
                             >
-                                {compareMode ? "退出比较" : "比较模式"}
+                                {compareMode ? t('search.exitCompare') : t('search.compareMode')}
                             </button>
                         </div>
 
                         {/* 模式选择器 */}
                         <div className="flex flex-wrap items-center gap-2.5">
                         <span
-                            className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">模式</span>
+                            className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">{t('search.mode')}</span>
                         <div
                             className="inline-flex flex-wrap items-center gap-1 rounded-lg bg-neutral-200 p-1 dark:bg-neutral-900">
-                            {MODE_OPTIONS.map((option) => {
+                            {[
+                                { label: t('search.all'), value: 0 },
+                                { label: t('search.rank'), value: 3 },
+                                { label: t('search.normal'), value: 2 },
+                                { label: t('search.cobalt'), value: 6 },
+                            ].map((option) => {
                                 const active = option.value === mode;
 
                                 return (
@@ -868,7 +950,7 @@ export default function Search() {
                     className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">{error}</div>}
 
                 {compareError && <div
-                    className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">比较查询失败: {compareError}</div>}
+                    className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">{t('search.compareFailed')}: {compareError}</div>}
 
                 {/* 比较模式：双栏显示 */}
                 {compareMode && render && view && compareRender && compareView ? (
@@ -898,7 +980,7 @@ export default function Search() {
                             )}
 
                             <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-                                <h3 className="mb-3 text-sm font-bold text-neutral-900 dark:text-neutral-100">基础数据</h3>
+                                <h3 className="mb-3 text-sm font-bold text-neutral-900 dark:text-neutral-100">{t('search.basicStats')}</h3>
                                 <div className="space-y-2">
                                     {view.summaryRows.map(([label, value1], i) => {
                                         const value2 = compareView.summaryRows[i][1];
@@ -919,7 +1001,7 @@ export default function Search() {
                             </section>
 
                             <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-                                <h3 className="mb-3 text-sm font-bold text-neutral-900 dark:text-neutral-100">常用角色</h3>
+                                <h3 className="mb-3 text-sm font-bold text-neutral-900 dark:text-neutral-100">{t('search.commonCharacters')}</h3>
                                 <div className="space-y-2">
                                     {view.characterRows.slice(0, 5).map((row, i) => (
                                         <div key={i} className="flex items-center gap-2">
@@ -960,7 +1042,7 @@ export default function Search() {
                             )}
 
                             <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-                                <h3 className="mb-3 text-sm font-bold text-neutral-900 dark:text-neutral-100">基础数据</h3>
+                                <h3 className="mb-3 text-sm font-bold text-neutral-900 dark:text-neutral-100">{t('search.basicStats')}</h3>
                                 <div className="space-y-2">
                                     {compareView.summaryRows.map(([label, value2], i) => {
                                         const value1 = view.summaryRows[i][1];
@@ -981,7 +1063,7 @@ export default function Search() {
                             </section>
 
                             <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-                                <h3 className="mb-3 text-sm font-bold text-neutral-900 dark:text-neutral-100">常用角色</h3>
+                                <h3 className="mb-3 text-sm font-bold text-neutral-900 dark:text-neutral-100">{t('search.commonCharacters')}</h3>
                                 <div className="space-y-2">
                                     {compareView.characterRows.slice(0, 5).map((row, i) => (
                                         <div key={i} className="flex items-center gap-2">
@@ -1027,13 +1109,13 @@ export default function Search() {
                                 <RankSummary data={render.data} season={render.season} mode={render.mode}
                                              mmrStats={render.mmrStats}/>
                                 <StatsTable
-                                    title="角色"
+                                    title={t('search.tableCharacter')}
                                     rows={view.characterRows}
                                     onCharacterSelect={(characterName) =>
                                         navigateToCharacterByName(navigate, characters, characterName)
                                     }
                                 />
-                                <StatsTable title="一起游戏的玩家" rows={view.partnerRows}
+                                <StatsTable title={t('search.tablePartner')} rows={view.partnerRows}
                                             onRowSelect={handlePlayerSelect}/>
                             </aside>
 
@@ -1060,7 +1142,7 @@ export default function Search() {
                                             onClick={() => handlePageChange(page - 1)}
                                             className="h-9 rounded border border-neutral-300 bg-white px-3 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-200/60 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
                                         >
-                                            Prev
+                                            {t('search.prevPage')}
                                         </button>
                                         {visiblePages.slice(Math.max(0, page - 5), Math.min(page + 5, visiblePages.length)).map((pageNumber) => {
                                             const active = pageNumber === page;
@@ -1089,13 +1171,13 @@ export default function Search() {
                                             onClick={() => handlePageChange(render.nextPage ?? page + 1)}
                                             className="h-9 rounded border border-neutral-300 bg-white px-3 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-200/60 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
                                         >
-                                            Next
+                                            {t('search.nextPage')}
                                         </button>
                                     </nav>
                                 )}
                                 <div
                                     className="mt-4 h-9 text-center text-sm font-semibold text-neutral-500 dark:text-neutral-400">
-                                    {loading ? "Loading..." : render.hasNext ? "" : "No more matches"}
+                                    {loading ? t('search.loading') : render.hasNext ? "" : t('search.noMoreMatches')}
                                 </div>
                             </main>
                         </div>

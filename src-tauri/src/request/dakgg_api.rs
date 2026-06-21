@@ -1,5 +1,6 @@
 use std::{path::PathBuf, sync::LazyLock, time::Duration};
 
+use crate::request::cache::GAME_DATA_CACHE;
 use crate::request::models::CharacterAnalysis;
 use crate::request::{
     error::{RequestError, Result},
@@ -14,7 +15,7 @@ use crate::request::{
         DakGgAreasResponse, DakGgInfusionsResponse, DakGgCharacterLeaderboardResponse,
     },
     types::{
-        CacheTime, DakGgRank, DakGgServerName, DakGgTeamMode, ImageResourcesType, MatchingMode,
+        DakGgRank, DakGgServerName, DakGgTeamMode, ImageResourcesType, MatchingMode,
     },
 };
 use regex::Regex;
@@ -32,15 +33,33 @@ static CHARACTER_ANALYSIS_REGEX: LazyLock<Regex> = LazyLock::new(|| {
         .expect("invalid __NEXT_DATA__ regex")
 });
 
+/// Get the current language code for API requests
+fn get_hl() -> String {
+    crate::config::get_language()
+}
+
 pub struct EternalReturnDakGgApi;
 
 impl EternalReturnDakGgApi {
     pub async fn get_tiers() -> Result<DakGgTiersResponse> {
-        dakgg_json("/v1/data/tiers?hl=zh_cn", CacheTime::Week).await
+        // Check cache first
+        if let Some(cached) = GAME_DATA_CACHE.get_tiers() {
+            return Ok(cached);
+        }
+
+        // Cache miss, fetch from API
+        let url = format!("/v1/data/tiers?hl={}", get_hl());
+        let data: DakGgTiersResponse = dakgg_json(url).await?;
+
+        // Store in cache
+        GAME_DATA_CACHE.set_tiers(data.clone());
+        Ok(data)
     }
 
     pub async fn get_game_data_by_season() -> Result<DakGgSeasonResponse> {
-        dakgg_json("/v1/data/seasons?hl=zh_CN", CacheTime::Week).await
+
+        let url = format!("/v1/data/seasons?hl={}", get_hl());
+        dakgg_json(url).await
     }
 
     pub async fn get_character_leaderboard(
@@ -51,61 +70,151 @@ impl EternalReturnDakGgApi {
         page: i32,
     ) -> Result<DakGgCharacterLeaderboardResponse> {
         let url = format!(
-            "/v0/leaderboard/characters/{}?seasonKey={}&teamMode={}&sortType={}&page={}&hl=zh_cn",
+            "/v0/leaderboard/characters/{}?seasonKey={}&teamMode={}&sortType={}&page={}&hl={}",
             encode_component(character_key),
             encode_component(season_key),
             encode_component(team_mode),
             encode_component(sort_type),
             page,
+            get_hl(),
         );
-        dakgg_json(url, CacheTime::Hour).await
+        dakgg_json(url).await
     }
 
     pub async fn get_current_season() -> Result<DakGgCurrentSeasonResponse> {
-        dakgg_json("/v0/current-season?hl=zh_CN", CacheTime::Week).await
+        if let Some(cached) = GAME_DATA_CACHE.get_current_season() {
+            return Ok(cached);
+        }
+        let url = format!("/v0/current-season?hl={}", get_hl());
+        let result: DakGgCurrentSeasonResponse = dakgg_json(url).await?;
+        GAME_DATA_CACHE.set_current_season(result.clone());
+        Ok(result)
     }
 
     pub async fn get_characters() -> Result<DakGgCharactersResponse> {
-        dakgg_json("/v1/data/characters?hl=zh_CN", CacheTime::Week).await
+        // Check cache first
+        if let Some(cached) = GAME_DATA_CACHE.get_characters() {
+            return Ok(cached);
+        }
+
+        // Cache miss, fetch from API
+        let url = format!("/v1/data/characters?hl={}", get_hl());
+        let data: DakGgCharactersResponse = dakgg_json(url).await?;
+
+        // Store in cache
+        GAME_DATA_CACHE.set_characters(data.clone());
+        Ok(data)
     }
 
     pub async fn get_items() -> Result<DakGgItemsResponse> {
-        dakgg_json("/v1/data/items?hl=zh-cn", CacheTime::Week).await
+        // Check cache first
+        if let Some(cached) = GAME_DATA_CACHE.get_items() {
+            return Ok(cached);
+        }
+
+        // Cache miss, fetch from API
+        let url = format!("/v1/data/items?hl={}", get_hl());
+        let data: DakGgItemsResponse = dakgg_json(url).await?;
+
+        // Store in cache
+        GAME_DATA_CACHE.set_items(data.clone());
+        Ok(data)
     }
 
     pub async fn get_weapons() -> Result<DakGgWeaponResponse> {
-        dakgg_json("/v1/data/masteries?hl=zh_cn", CacheTime::Week).await
+        // Check cache first
+        if let Some(cached) = GAME_DATA_CACHE.get_weapons() {
+            return Ok(cached);
+        }
+
+        // Cache miss, fetch from API
+        let url = format!("/v1/data/masteries?hl={}", get_hl());
+        let data: DakGgWeaponResponse = dakgg_json(url).await?;
+
+        // Store in cache
+        GAME_DATA_CACHE.set_weapons(data.clone());
+        Ok(data)
     }
 
     pub async fn get_trait_skills() -> Result<DakGgTraitSkillsResponse> {
-        dakgg_json("/v1/data/trait-skills?hl=zh_cn", CacheTime::Week).await
+        // Check cache first
+        if let Some(cached) = GAME_DATA_CACHE.get_trait_skills() {
+            return Ok(cached);
+        }
+
+        // Cache miss, fetch from API
+        let url = format!("/v1/data/trait-skills?hl={}", get_hl());
+        let data: DakGgTraitSkillsResponse = dakgg_json(url).await?;
+
+        // Store in cache
+        GAME_DATA_CACHE.set_trait_skills(data.clone());
+        Ok(data)
     }
 
     pub async fn get_areas() -> Result<DakGgAreasResponse> {
-        dakgg_json("/v1/data/areas?hl=zh_cn", CacheTime::Week).await
+        // Check cache first
+        if let Some(cached) = GAME_DATA_CACHE.get_areas() {
+            return Ok(cached);
+        }
+
+        // Cache miss, fetch from API
+        let url = format!("/v1/data/areas?hl={}", get_hl());
+        let data: DakGgAreasResponse = dakgg_json(url).await?;
+
+        // Store in cache
+        GAME_DATA_CACHE.set_areas(data.clone());
+        Ok(data)
     }
 
     pub async fn get_infusions() -> Result<DakGgInfusionsResponse> {
-        dakgg_json("/v1/data/infusions?hl=zh_cn", CacheTime::Week).await
+        // Check cache first
+        if let Some(cached) = GAME_DATA_CACHE.get_infusions() {
+            return Ok(cached);
+        }
+
+        // Cache miss, fetch from API
+        let url = format!("/v1/data/infusions?hl={}", get_hl());
+        let data: DakGgInfusionsResponse = dakgg_json(url).await?;
+
+        // Store in cache
+        GAME_DATA_CACHE.set_infusions(data.clone());
+        Ok(data)
     }
 
     pub async fn get_tactical_skills() -> Result<DakGgTacticalSkillResponse> {
-        dakgg_json("/v1/data/tactical-skills?hl=zh_cn", CacheTime::Week).await
+        // Check cache first
+        if let Some(cached) = GAME_DATA_CACHE.get_tactical_skills() {
+            return Ok(cached);
+        }
+
+        // Cache miss, fetch from API
+        let url = format!("/v1/data/tactical-skills?hl={}", get_hl());
+        let data: DakGgTacticalSkillResponse = dakgg_json(url).await?;
+
+        // Store in cache
+        GAME_DATA_CACHE.set_tactical_skills(data.clone());
+        Ok(data)
     }
 
     pub async fn get_skills() -> Result<DakGgSkillsResponse> {
-        dakgg_json("/v1/data/skills?hl=zh_cn", CacheTime::Week).await
-    }
+        // Check cache first
+        if let Some(cached) = GAME_DATA_CACHE.get_skills() {
+            return Ok(cached);
+        }
 
-    pub async fn refresh(url: &str) {
-        REQUEST_MANAGER.invalidate_url(url).await;
+        // Cache miss, fetch from API
+        let url = format!("/v1/data/skills?hl={}", get_hl());
+        let data: DakGgSkillsResponse = dakgg_json(url).await?;
+
+        // Store in cache
+        GAME_DATA_CACHE.set_skills(data.clone());
+        Ok(data)
     }
 
     pub async fn get_profile(nickname: &str) -> Result<DakGgProfileResponse> {
         let encoded = encode_component(nickname);
         let api = dakgg_request_accepting_error_status(
             format!("/v1/players/{encoded}/profile"),
-            CacheTime::Null,
         );
         dakgg_json_with_nickname(&api, nickname).await
     }
@@ -114,7 +223,6 @@ impl EternalReturnDakGgApi {
         let encoded = encode_component(nickname);
         let api = dakgg_request(
             format!("/v0/rpc/player-sync/by-name/{encoded}"),
-            CacheTime::Null,
         );
 
         let mut last_response = None;
@@ -157,7 +265,6 @@ impl EternalReturnDakGgApi {
     ) -> Result<DakGgMatchesResponse> {
         let api = dakgg_request_accepting_error_status(
             game_url(nickname, season_type, matching_mode, team_mode, page),
-            CacheTime::Null,
         );
         dakgg_json_with_nickname(&api, nickname).await
     }
@@ -168,8 +275,8 @@ impl EternalReturnDakGgApi {
         game_id: i64,
     ) -> Result<DakGgMatchDetailResponse> {
         let encoded = encode_component(nickname);
-        let url = format!("/v1/players/{encoded}/matches/{season_id}/{game_id}?hl=zh_CN");
-        let api = dakgg_request_accepting_error_status(url, CacheTime::Minutes);
+        let url = format!("/v1/players/{encoded}/matches/{season_id}/{game_id}?hl={}", get_hl());
+        let api = dakgg_request_accepting_error_status(url);
         dakgg_json_with_nickname(&api, nickname).await
     }
 
@@ -178,18 +285,15 @@ impl EternalReturnDakGgApi {
         season_type: &str,
         server_name: DakGgServerName,
         team_mode: DakGgTeamMode,
-        refresh: bool,
     ) -> Result<DakGgLeaderboardResponse> {
         let url = format!(
-            "/v0/leaderboard?page={page}&seasonKey={}&serverName={}&teamMode={}&hl=zh_CN",
+            "/v0/leaderboard?page={page}&seasonKey={}&serverName={}&teamMode={}&hl={}",
             encode_component(season_type),
             server_name.value(),
-            team_mode.value()
+            team_mode.value(),
+            get_hl(),
         );
-        if refresh {
-            REQUEST_MANAGER.invalidate_url(&url).await;
-        }
-        dakgg_json(url, CacheTime::Hour).await
+        dakgg_json(url).await
     }
 
     pub async fn get_tier_distribution(
@@ -197,10 +301,10 @@ impl EternalReturnDakGgApi {
     ) -> Result<TierDistributionsResponse> {
         dakgg_json(
             format!(
-                "/v0/statistics/tier-distribution?teamMode={}&hl=zh_CN",
-                team_mode.value()
+                "/v0/statistics/tier-distribution?teamMode={}&hl={}",
+                team_mode.value(),
+                get_hl(),
             ),
-            CacheTime::Hour,
         )
         .await
     }
@@ -229,8 +333,8 @@ impl EternalReturnDakGgApi {
             }
         }
 
-        url.push_str("&hl=zh_CN");
-        dakgg_json(url, CacheTime::Hour).await
+        url.push_str(&format!("&hl={}", get_hl()));
+        dakgg_json(url).await
     }
 
     pub fn image_url_character(
@@ -258,8 +362,8 @@ impl EternalReturnDakGgApi {
         tier: Option<&str>,
     ) -> Result<CharacterAnalysis> {
         let mut url = format!(
-            "https://dak.gg/er/characters/{}?hl=zh_CN&tab=introduction&teamMode={}&matchingMode={}",
-            character_key, team_mode, matching_mode
+            "https://dak.gg/er/characters/{}?hl={}&tab=introduction&teamMode={}&matchingMode={}",
+            character_key, get_hl(), team_mode, matching_mode
         );
         // tier 仅排位有意义；普通/钴协议忽略它（返回 unrank）。
         if let Some(tier) = tier {
@@ -267,7 +371,7 @@ impl EternalReturnDakGgApi {
             url.push_str(tier);
         }
         // URL 作为 url 段（base 留空），否则 normalize_url 会在末尾补 `/`，把末位查询值弄脏。
-        let request = ApiRequest::new("", url, CacheTime::Day)
+        let request = ApiRequest::new("", url)
             .header("User-Agent", DAKGG_USER_AGENT);
         let response = REQUEST_MANAGER.call(&request).await?;
         let html = String::from_utf8(response.bytes)
@@ -281,11 +385,11 @@ impl EternalReturnDakGgApi {
     }
 }
 
-async fn dakgg_json<T>(url: impl Into<String>, cache_time: CacheTime) -> Result<T>
+async fn dakgg_json<T>(url: impl Into<String>) -> Result<T>
 where
     T: DeserializeOwned,
 {
-    let api = dakgg_request(url, cache_time);
+    let api = dakgg_request(url);
     REQUEST_MANAGER.call_json(&api).await
 }
 
@@ -311,8 +415,8 @@ where
     }
 }
 
-fn dakgg_request(url: impl Into<String>, cache_time: CacheTime) -> ApiRequest {
-    ApiRequest::new(BASE_URL, url, cache_time).header("User-Agent", DAKGG_USER_AGENT)
+fn dakgg_request(url: impl Into<String>) -> ApiRequest {
+    ApiRequest::new(BASE_URL, url).header("User-Agent", DAKGG_USER_AGENT)
 }
 
 fn game_url(
@@ -336,13 +440,12 @@ fn game_url(
 
 fn dakgg_request_accepting_error_status(
     url: impl Into<String>,
-    cache_time: CacheTime,
 ) -> ApiRequest {
-    dakgg_request(url, cache_time).accept_error_status()
+    dakgg_request(url).accept_error_status()
 }
 
 fn resource_request(url: impl Into<String>, path: impl Into<PathBuf>) -> ResourceRequest {
-    let mut request = ApiRequest::new("", url, CacheTime::Null)
+    let mut request = ApiRequest::new("", url)
         .header("User-Agent", DAKGG_USER_AGENT)
         .resource();
     request.method = Method::GET;

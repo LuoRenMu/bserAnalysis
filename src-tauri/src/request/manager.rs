@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     path::{Path, PathBuf},
     sync::{Arc, LazyLock, Mutex},
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use reqwest::{header, Client, Method};
@@ -10,10 +10,7 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 use tokio::{fs, sync::Mutex as AsyncMutex, time::sleep};
 
-use crate::request::{
-    error::{RequestError, Result},
-    types::CacheTime,
-};
+use crate::request::error::{RequestError, Result};
 
 pub static REQUEST_MANAGER: LazyLock<RequestManager> = LazyLock::new(RequestManager::new);
 
@@ -27,20 +24,18 @@ pub struct ApiRequest {
     pub method: Method,
     pub headers: HashMap<String, String>,
     pub body: Option<Value>,
-    pub cache_time: CacheTime,
     pub is_resource: bool,
     pub accept_error_status: bool,
 }
 
 impl ApiRequest {
-    pub fn new(base_url: impl Into<String>, url: impl Into<String>, cache_time: CacheTime) -> Self {
+    pub fn new(base_url: impl Into<String>, url: impl Into<String>) -> Self {
         Self {
             base_url: base_url.into(),
             url: url.into(),
             method: Method::GET,
             headers: HashMap::new(),
             body: None,
-            cache_time,
             is_resource: false,
             accept_error_status: false,
         }
@@ -58,7 +53,6 @@ impl ApiRequest {
 
     pub fn resource(mut self) -> Self {
         self.is_resource = true;
-        self.cache_time = CacheTime::Null;
         self
     }
 
@@ -105,15 +99,8 @@ impl ResponseBytes {
     }
 }
 
-#[derive(Debug, Clone)]
-struct CacheEntry {
-    expires_at: Instant,
-    response: ResponseBytes,
-}
-
 pub struct RequestManager {
     client: Client,
-    cache: AsyncMutex<HashMap<String, CacheEntry>>,
     locks: Mutex<HashMap<String, Arc<AsyncMutex<()>>>>,
 }
 
@@ -135,7 +122,6 @@ impl RequestManager {
 
         Self {
             client,
-            cache: AsyncMutex::new(HashMap::new()),
             locks: Mutex::new(HashMap::new()),
         }
     }
@@ -150,24 +136,9 @@ impl RequestManager {
 
     pub async fn call(&self, api: &ApiRequest) -> Result<ResponseBytes> {
         let full_url = api.full_url();
-        let cache_key = format!("{} {full_url}", api.method);
-
-        if !api.is_resource && api.method == Method::GET && api.cache_time != CacheTime::Null {
-            if let Some(cached) = self.get_cached(&cache_key).await {
-                log::debug!("cache hit {} {full_url}", api.method);
-                return Ok(cached);
-            }
-        }
 
         let key_lock = self.key_lock(&api.url);
         let _guard = key_lock.lock().await;
-
-        if !api.is_resource && api.method == Method::GET && api.cache_time != CacheTime::Null {
-            if let Some(cached) = self.get_cached(&cache_key).await {
-                log::debug!("cache hit {} {full_url}", api.method);
-                return Ok(cached);
-            }
-        }
 
         let response = self.execute_with_retry(api).await?;
         if !api.accept_error_status && !response.is_success() {
@@ -175,25 +146,7 @@ impl RequestManager {
             return Err(response.status_error(api));
         }
 
-        if response.is_success() && api.method == Method::GET && api.cache_time != CacheTime::Null {
-            if let Some(duration) = api.cache_time.duration() {
-                let mut cache = self.cache.lock().await;
-                cache.insert(
-                    cache_key,
-                    CacheEntry {
-                        expires_at: Instant::now() + duration,
-                        response: response.clone(),
-                    },
-                );
-            }
-        }
-
         Ok(response)
-    }
-
-    pub async fn invalidate_url(&self, url: &str) {
-        let mut cache = self.cache.lock().await;
-        cache.retain(|key, _| !key.ends_with(url));
     }
 
     pub async fn call_stream(&self, resource: &ResourceRequest, max_retries: usize) -> Result<()> {
@@ -282,18 +235,6 @@ impl RequestManager {
         log::debug!("← {status} {full_url} ({} bytes)", bytes.len());
 
         Ok(ResponseBytes { status, bytes })
-    }
-
-    async fn get_cached(&self, cache_key: &str) -> Option<ResponseBytes> {
-        let mut cache = self.cache.lock().await;
-        match cache.get(cache_key) {
-            Some(entry) if entry.expires_at > Instant::now() => Some(entry.response.clone()),
-            Some(_) => {
-                cache.remove(cache_key);
-                None
-            }
-            None => None,
-        }
     }
 
     fn key_lock(&self, key: &str) -> Arc<AsyncMutex<()>> {
@@ -386,7 +327,7 @@ mod tests {
 
     #[test]
     fn api_request_rejects_error_status_by_default() {
-        let api = ApiRequest::new("https://example.com", "/a", CacheTime::Null);
+        let api = ApiRequest::new("https://example.com", "/a");
         assert!(!api.accept_error_status);
         assert!(api.accept_error_status().accept_error_status);
     }

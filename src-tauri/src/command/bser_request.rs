@@ -18,6 +18,19 @@ fn log_error(operation: &str, context: &str, error: RequestError) -> String {
 }
 
 #[tauri::command]
+pub async fn set_language(hl: String) -> Result<(), String> {
+    log::info!("set_language hl={hl:?}");
+
+    // Update language in config
+    crate::config::set_language(&hl);
+
+    // Update cache language and clear if changed
+    crate::request::cache::GAME_DATA_CACHE.update_language(&hl);
+
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn search_player(
     nickname: String,
     mode: Option<i32>,
@@ -38,8 +51,6 @@ pub async fn refresh_player(
 ) -> Result<PlayerSearchRender, String> {
     let page = page.unwrap_or(1);
     log::info!("refresh_player nickname={nickname:?} mode={mode:?} page={page}");
-    // 先触发 dak.gg 服务端从游戏重新同步；仅昵称不存在时直接报错，
-    // 其它瞬时错误忽略后继续（去缓存后重新查询会拿到最新数据）。
     if let Err(error @ RequestError::NicknameNotFound(_)) =
         EternalReturnDakGgApi::sync(&nickname).await
     {
@@ -114,15 +125,13 @@ pub async fn fetch_leaderboard(
     server: Option<String>,
     team: Option<String>,
     page: Option<i32>,
-    refresh: Option<bool>,
     season_id: Option<i32>,
 ) -> Result<LeaderboardRender, String> {
     let page = page.unwrap_or(1);
-    let refresh = refresh.unwrap_or(false);
     let server = DakGgServerName::from_value(server.as_deref());
     let team_mode = DakGgTeamMode::from_value(team.as_deref());
-    log::info!("fetch_leaderboard server={server:?} team={team_mode:?} page={page} refresh={refresh} season_id={season_id:?}");
-    assemble_leaderboard(server, team_mode, page, refresh, season_id)
+    log::info!("fetch_leaderboard server={server:?} team={team_mode:?} page={page} season_id={season_id:?}");
+    assemble_leaderboard(server, team_mode, page, season_id)
         .await
         .map_err(|e| log_error("fetch_leaderboard", "", e))
 }

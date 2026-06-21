@@ -29,7 +29,7 @@ export const addErrorNotificationAtom = atom(
 
 export const removeErrorNotificationAtom = atom(
   null,
-  (get, set, id: string) => {
+  (_get, set, id: string) => {
     set(errorNotificationsAtom, (prev) => prev.filter((n) => n.id !== id));
   }
 );

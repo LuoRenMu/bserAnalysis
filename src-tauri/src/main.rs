@@ -35,6 +35,7 @@ fn main() {
             bseranalysis_lib::command::bser_client::reload_plugin,
             bseranalysis_lib::command::bser_client::set_plugin_path,
             bseranalysis_lib::command::bser_client::get_plugin_path,
+            bseranalysis_lib::command::bser_request::set_language,
             bseranalysis_lib::command::bser_request::search_player,
             bseranalysis_lib::command::bser_request::refresh_player,
             bseranalysis_lib::command::bser_request::fetch_leaderboard,

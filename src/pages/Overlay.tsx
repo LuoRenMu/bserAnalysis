@@ -1,6 +1,7 @@
 import {useEffect, useRef, useState} from "react";
 import {invoke} from "@tauri-apps/api/core";
 import {useAtom, useAtomValue} from "jotai";
+import {useTranslation} from "react-i18next";
 import {normalizeName, profile} from "../components/profile";
 import type {PlayerStatsByName} from "../components/profile";
 import {CharacterBrief, GameSnapshot} from "../types/bser";
@@ -24,6 +25,7 @@ const POLL_PREGAME_MS = 1000;
 const POLL_INGAME_MS = 3000;
 
 export default function Overlay() {
+    const {t} = useTranslation();
     const [active, setActive] = useAtom(activeAtom);
     const [snapshot, setSnapshot] = useAtom(snapshotAtom);
     const [statsByName, setStatsByName] = useState<PlayerStatsByName>({});
@@ -174,7 +176,7 @@ export default function Overlay() {
                 {snapshot ? (
                     profile(snapshot, statsByName, charactersById, settings)
                 ) : (
-                    <div className="mt-52 text-center text-5xl text-gray-500">等待游戏运行...</div>
+                    <div className="mt-52 text-center text-5xl text-gray-500">{t('overlay.waitingForGame')}</div>
                 )}
             </div>
         </div>

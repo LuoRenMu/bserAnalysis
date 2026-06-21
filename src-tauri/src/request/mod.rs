@@ -1,3 +1,4 @@
+pub mod cache;
 pub mod dakgg_api;
 pub mod error;
 mod helpers;
