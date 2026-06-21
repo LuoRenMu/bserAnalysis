@@ -1,0 +1,2 @@
+# This file ensures the resources directory is tracked by git
+# Game data resources (images, icons, etc.) will be downloaded at runtime
