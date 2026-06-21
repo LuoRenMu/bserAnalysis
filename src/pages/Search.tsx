@@ -380,7 +380,6 @@ function ItemGrid({equips, data}: { equips: EquipRender[]; data: GameData | null
 }
 
 function InfusionRow({raw, data}: { raw: string; data: GameData | null }) {
-    // 战绩页固定展示 3 个灌注槽：取灌注里的强化（Trait）类，按数量降序取前 3，不足补空槽。
     const slots = useMemo(() => {
         let entries: { id: number; count: number }[] = [];
         try {
