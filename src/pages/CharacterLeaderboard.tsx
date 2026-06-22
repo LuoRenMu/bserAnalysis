@@ -3,6 +3,7 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   characterBriefAtom,
+  fetchCharactersAtom,
   seasonListAtom,
   characterLeaderboardResultAtom,
   characterLeaderboardLoadingAtom,
@@ -163,11 +164,19 @@ export default function CharacterLeaderboard() {
   const [sortType, setSortType] = useAtom(characterLeaderboardSortTypeAtom);
   const [page, setPage] = useAtom(characterLeaderboardPageAtom);
 
+  const fetchCharacters = useSetAtom(fetchCharactersAtom);
   const fetchCharacterLeaderboard = useSetAtom(fetchCharacterLeaderboardAtom);
   const fetchSeasons = useSetAtom(fetchSeasonsAtom);
 
   const setSearchQuery = useSetAtom(searchQueryAtom);
   const searchPlayer = useSetAtom(searchPlayerAtom);
+
+  // 初始化：获取角色列表
+  useEffect(() => {
+    if (characters.length === 0) {
+      void fetchCharacters();
+    }
+  }, [fetchCharacters, characters.length]);
 
   // 初始化：获取赛季列表
   useEffect(() => {

@@ -18,7 +18,10 @@ use std::path::Path;
 
 use windows::core::PCSTR;
 use windows::Win32::Foundation::{FreeLibrary, HMODULE};
-use windows::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryA};
+use windows::Win32::System::LibraryLoader::{
+    AddDllDirectory, GetProcAddress, LoadLibraryA, SetDefaultDllDirectories,
+    LOAD_LIBRARY_SEARCH_DEFAULT_DIRS,
+};
 
 type ApiIntFn = unsafe extern "system" fn() -> i32;
 type ApiDataFn = unsafe extern "system" fn() -> *mut c_void;
@@ -66,8 +69,52 @@ impl Plugin {
         bytes.push(0);
 
         unsafe {
+            // Add dependency DLL search paths
+            // The dakgg-er-plugin.dll depends on windows_*.dll files that are
+            // in the rust-interop/target/debug/deps directory
+            let mut deps_added = false;
+            if let Some(parent) = path.parent() {
+                let deps_path = parent
+                    .parent()
+                    .and_then(|p| p.parent())
+                    .map(|p| p.join("rust-interop/target/debug/deps"));
+
+                if let Some(deps_dir) = deps_path {
+                    if deps_dir.exists() {
+                        // Enable DLL directory search
+                        let _ = SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+
+                        // Add the deps directory to DLL search path
+                        if let Some(deps_str) = deps_dir.to_str() {
+                            let mut wide: Vec<u16> = deps_str.encode_utf16().collect();
+                            wide.push(0);
+                            let cookie = AddDllDirectory(windows::core::PCWSTR(wide.as_ptr()));
+                            if !cookie.is_null() {
+                                log::info!("Added DLL search path: {}", deps_str);
+                                deps_added = true;
+                            } else {
+                                log::warn!("Failed to add DLL search path: {}", deps_str);
+                            }
+                        }
+                    } else {
+                        log::warn!("Dependency DLL directory not found: {}", deps_dir.display());
+                    }
+                }
+            }
+
+            if !deps_added {
+                log::warn!("Could not add dependency DLL search paths - injection may fail");
+            }
+
             let module = LoadLibraryA(PCSTR(bytes.as_ptr()))
-                .map_err(|e| format!("LoadLibraryA failed: {e} target -> {path_str}"))?;
+                .map_err(|e| {
+                    let msg = format!("DLL 加载失败: {} - {}", path_str, e);
+                    log::error!("{}", msg);
+                    if !deps_added {
+                        log::error!("提示: 依赖 DLL 可能缺失。请确保 windows_*.dll 文件在正确的位置。");
+                    }
+                    msg
+                })?;
             if module.is_invalid() {
                 return Err("LoadLibraryA returned NULL".into());
             }

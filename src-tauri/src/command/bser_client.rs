@@ -1,123 +1,132 @@
-use crate::core::dll::*;
 use crate::core::ipc::GameSnapshot;
-use std::sync::{Arc, Mutex, LazyLock};
-use std::path::PathBuf;
+use crate::game_data::{DllGameDataSource, GameDataManager};
 
 #[tauri::command]
 pub fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
-static PLUGIN: LazyLock<Mutex<Option<Result<Arc<Plugin>, String>>>> = LazyLock::new(|| Mutex::new(None));
-static PLUGIN_PATH: LazyLock<Mutex<Option<PathBuf>>> = LazyLock::new(|| Mutex::new(None));
-
-fn get_or_load_plugin() -> Result<Arc<Plugin>, String> {
-    let mut guard = PLUGIN.lock().unwrap();
-
-    // 如果已经加载过，返回缓存的结果
-    if let Some(cached) = guard.as_ref() {
-        return cached.clone();
-    }
-
-    // 首次加载
-    let plugin_path = {
-        let path_guard = PLUGIN_PATH.lock().unwrap();
-        if let Some(custom_path) = path_guard.as_ref() {
-            custom_path.clone()
-        } else {
-            crate::config::get_plugin_path()
-        }
-    };
-
-    log::info!(target: "dll", "attempting to load plugin from: {}", plugin_path.display());
-
-    let result = match Plugin::load(plugin_path.to_string_lossy().to_string()) {
-        Ok(p) => {
-            log::info!(target: "dll", "plugin loaded successfully");
-            Ok(Arc::new(p))
-        }
-        Err(e) => {
-            log::error!(target: "dll", "failed to load plugin: {e}");
-            Err(format!("DLL加载失败: {} (路径: {})", e, plugin_path.display()))
-        }
-    };
-
-    *guard = Some(result.clone());
-    result
+#[tauri::command]
+pub fn inject(state: tauri::State<GameDataManager>) -> Result<bool, String> {
+    state.source()
+        .inject()
+        .map(|_| true)
+        .map_err(|e| e.to_string())
 }
 
-/// 设置 DLL 路径并重新加载
 #[tauri::command]
-pub fn set_plugin_path(path: String) -> Result<(), String> {
-    let mut path_guard = PLUGIN_PATH.lock().unwrap();
-    *path_guard = Some(PathBuf::from(path));
-    drop(path_guard);
-
-    // 清除缓存，下次调用时会重新加载
-    let mut guard = PLUGIN.lock().unwrap();
-    *guard = None;
-    drop(guard);
-
-    log::info!(target: "dll", "plugin path updated and cache cleared");
-    Ok(())
+pub fn quit(state: tauri::State<GameDataManager>) -> Result<bool, String> {
+    state.source()
+        .quit()
+        .map(|_| true)
+        .map_err(|e| e.to_string())
 }
 
-/// 获取当前配置的 DLL 路径
 #[tauri::command]
-pub fn get_plugin_path() -> String {
-    let path_guard = PLUGIN_PATH.lock().unwrap();
-    if let Some(custom_path) = path_guard.as_ref() {
-        custom_path.to_string_lossy().to_string()
+pub fn fetch(state: tauri::State<GameDataManager>) -> Result<GameSnapshot, String> {
+    state.source()
+        .fetch_snapshot()
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn reload_plugin(state: tauri::State<GameDataManager>) -> Result<(), String> {
+    if let Some(dll_source) = state.source().as_any().downcast_ref::<DllGameDataSource>() {
+        dll_source.reload();
+        log::info!("Plugin cache cleared");
     } else {
-        crate::config::get_plugin_path().to_string_lossy().to_string()
+        log::warn!("reload_plugin: source is not DllGameDataSource");
     }
-}
-
-/// 重新加载 DLL（当设置变更时调用）
-#[tauri::command]
-pub fn reload_plugin() -> Result<(), String> {
-    let mut guard = PLUGIN.lock().unwrap();
-    *guard = None; // 清除缓存
-    drop(guard);
-
-    log::info!(target: "dll", "plugin cache cleared, will reload on next use");
     Ok(())
 }
 
 #[tauri::command]
-pub fn inject() -> Result<bool, String> {
-    let plugin = get_or_load_plugin()?;
-
-    let result = plugin.inject();
-    if result {
-        log::info!(target: "dll", "injected successfully");
-        Ok(true)
-    } else {
-        log::error!(target: "dll", "failed to inject");
-        Err("注入失败，请确保游戏正在运行".to_string())
+pub fn set_plugin_path(
+    state: tauri::State<GameDataManager>,
+    path: String,
+) -> Result<(), String> {
+    let trimmed = path.trim();
+    if trimmed.is_empty() {
+        return Err("DLL 路径不能为空".to_string());
     }
+
+    let path_buf = std::path::PathBuf::from(trimmed);
+    if !path_buf.exists() {
+        return Err(format!("DLL 路径错误: 文件不存在 - {}", trimmed));
+    }
+    if !path_buf.is_file() {
+        return Err(format!("DLL 路径错误: 不是文件 - {}", trimmed));
+    }
+
+    if let Some(dll_source) = state.source().as_any().downcast_ref::<DllGameDataSource>() {
+        dll_source.set_dll_path(path_buf);
+    } else {
+        log::warn!("set_plugin_path: source is not DllGameDataSource");
+    }
+
+    log::info!("DLL path validated and applied: {}", trimmed);
+    Ok(())
 }
 
 #[tauri::command]
-pub fn quit() -> Result<bool, String> {
-    let plugin = get_or_load_plugin()?;
-
-    let result = plugin.quit();
-    if result {
-        log::info!(target: "dll", "quit successfully");
-        Ok(true)
-    } else {
-        log::warn!(target: "dll", "quit failed or already quit");
-        Err("退出失败或已经退出".to_string())
-    }
+pub fn get_plugin_path(state: tauri::State<GameDataManager>) -> String {
+    state.source()
+        .dll_path()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| crate::config::get_plugin_path().to_string_lossy().to_string())
 }
 
-#[tauri::command]
-pub fn fetch() -> Result<GameSnapshot, String> {
-    let plugin = get_or_load_plugin()?;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::game_data::mock::MockGameDataSource;
+    use std::sync::Arc;
 
-    match plugin.fetch() {
-        Some(buf) => Ok(GameSnapshot::from_bytes(buf)),
-        None => Err("无法获取游戏数据，请确保已注入且游戏正在运行".to_string()),
+    // 注意：Tauri State 的测试比较复杂，这里提供基本的单元测试
+    // 实际的 command 测试应该通过集成测试完成
+
+    #[test]
+    fn test_game_data_manager_inject() {
+        let mock = Arc::new(MockGameDataSource::new());
+        let manager = GameDataManager::new(mock.clone());
+
+        let result = manager.source().inject();
+        assert!(result.is_ok());
+
+        let log = mock.get_call_log();
+        assert!(log.contains(&"inject".to_string()));
+    }
+
+    #[test]
+    fn test_game_data_manager_inject_failure() {
+        let mock = Arc::new(MockGameDataSource::new().with_inject_error());
+        let manager = GameDataManager::new(mock);
+
+        let result = manager.source().inject();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_game_data_manager_fetch_snapshot() {
+        let mock = Arc::new(MockGameDataSource::new());
+        let manager = GameDataManager::new(mock.clone());
+
+        let result = manager.source().fetch_snapshot();
+        assert!(result.is_ok());
+
+        let log = mock.get_call_log();
+        assert!(log.contains(&"fetch_snapshot".to_string()));
+    }
+
+    #[test]
+    fn test_game_data_manager_quit() {
+        let mock = Arc::new(MockGameDataSource::new());
+        let manager = GameDataManager::new(mock.clone());
+
+        let result = manager.source().quit();
+        assert!(result.is_ok());
+
+        let log = mock.get_call_log();
+        assert!(log.contains(&"quit".to_string()));
     }
 }

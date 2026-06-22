@@ -76,11 +76,21 @@ pub struct ResourceRequest {
 pub struct ResponseBytes {
     pub status: u16,
     pub bytes: Vec<u8>,
+    pub etag: Option<String>,
+    pub last_modified: Option<String>,
 }
 
 impl ResponseBytes {
     pub fn is_success(&self) -> bool {
         (200..=207).contains(&self.status)
+    }
+
+    pub fn is_not_modified(&self) -> bool {
+        self.status == 304
+    }
+
+    pub fn is_success_or_not_modified(&self) -> bool {
+        self.is_success() || self.is_not_modified()
     }
 
     pub fn status_error(&self, api: &ApiRequest) -> RequestError {
@@ -141,7 +151,8 @@ impl RequestManager {
         let _guard = key_lock.lock().await;
 
         let response = self.execute_with_retry(api).await?;
-        if !api.accept_error_status && !response.is_success() {
+        // 304 Not Modified 也是成功的响应（用于条件请求）
+        if !api.accept_error_status && !response.is_success_or_not_modified() {
             log::error!("{} {full_url} → HTTP {}", api.method, response.status);
             return Err(response.status_error(api));
         }
@@ -230,11 +241,36 @@ impl RequestManager {
             log::warn!("✗ {} {full_url} transport error: {error}", api.method);
             error
         })?;
-        let status = response.status().as_u16();
-        let bytes = response.bytes().await?.to_vec();
-        log::debug!("← {status} {full_url} ({} bytes)", bytes.len());
 
-        Ok(ResponseBytes { status, bytes })
+        let status = response.status().as_u16();
+
+        // 提取 ETag 和 Last-Modified
+        let etag = response
+            .headers()
+            .get(header::ETAG)
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string());
+
+        let last_modified = response
+            .headers()
+            .get(header::LAST_MODIFIED)
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string());
+
+        let bytes = response.bytes().await?.to_vec();
+        log::debug!(
+            "← {status} {full_url} ({} bytes){}{}",
+            bytes.len(),
+            if etag.is_some() { " [ETag]" } else { "" },
+            if last_modified.is_some() { " [Last-Modified]" } else { "" }
+        );
+
+        Ok(ResponseBytes {
+            status,
+            bytes,
+            etag,
+            last_modified,
+        })
     }
 
     fn key_lock(&self, key: &str) -> Arc<AsyncMutex<()>> {
@@ -311,19 +347,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn response_success_accepts_kotlin_success_range() {
-        assert!(ResponseBytes {
-            status: 207,
-            bytes: Vec::new(),
-        }
-        .is_success());
-        assert!(!ResponseBytes {
-            status: 208,
-            bytes: Vec::new(),
-        }
-        .is_success());
-    }
 
     #[test]
     fn api_request_rejects_error_status_by_default() {

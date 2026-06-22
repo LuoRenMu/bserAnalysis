@@ -12,6 +12,7 @@ export interface AppSettings {
   dllPath: string;
   skipInjectionConfirm: boolean;
   boundPlayerName: string;
+  overlayShortcut: string;
 }
 
 export const DEFAULT_DLL_PATH =
@@ -26,6 +27,7 @@ export const defaultSettings: AppSettings = {
   dllPath: DEFAULT_DLL_PATH,
   skipInjectionConfirm: false,
   boundPlayerName: "",
+  overlayShortcut: "`",
 };
 
 function aliasKey(value: string) {
@@ -55,6 +57,7 @@ function normalizeSettings(value: Partial<AppSettings> | undefined): AppSettings
     dllPath: value?.dllPath?.trim() || DEFAULT_DLL_PATH,
     skipInjectionConfirm: value?.skipInjectionConfirm ?? false,
     boundPlayerName: value?.boundPlayerName?.trim() || "",
+    overlayShortcut: value?.overlayShortcut?.trim() || "",
   };
 }
 

@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Game overlay window (local development only - commented out by default)
+# Uncomment these lines if you don't want to commit overlay changes:
+# src/windows/GameOverlay.tsx
+# src-tauri/src/windows/overlay.rs
+# src/utils/overlay.ts
+
+
+# Game overlay window (local development only)
+# src/windows/GameOverlay.tsx
+# src-tauri/src/windows/overlay.rs
+# src/utils/overlay.ts

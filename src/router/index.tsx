@@ -8,6 +8,7 @@ import Leaderboard from "../pages/Leaderboard";
 import CharacterLeaderboard from "../pages/CharacterLeaderboard";
 import CharacterStats from "../pages/CharacterStats";
 import Settings from "../pages/Settings";
+import GameOverlay from "../windows/GameOverlay";
 
 const router = createBrowserRouter([
   {
@@ -23,6 +24,11 @@ const router = createBrowserRouter([
       { path: "character-stats", element: <CharacterStats /> },
       { path: "settings", element: <Settings /> },
     ],
+  },
+  // 独立窗口路由（无导航栏）
+  {
+    path: "/game-overlay",
+    element: <GameOverlay />,
   },
 ]);
 

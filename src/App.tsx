@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Outlet } from "react-router-dom";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { invoke } from "@tauri-apps/api/core";
@@ -16,26 +16,26 @@ function App() {
   const [injected, setInjected] = useAtom(injectAtom);
   const [active, setActive] = useAtom(activeAtom);
   const addErrorNotification = useSetAtom(addErrorNotificationAtom);
+  const [dllPathValid, setDllPathValid] = useState(false);
+  const lastInjectErrorRef = useRef<string | null>(null);
 
-  // 同步 DLL 路径到后端
-  useEffect(() => {
-    if (settings.dllPath) {
-      invoke("set_plugin_path", { path: settings.dllPath })
-        .then(() => {
-          console.log("DLL path synced to backend:", settings.dllPath);
-        })
-        .catch((error) => {
-          console.error("Failed to set plugin path:", error);
-          addErrorNotification(`设置 DLL 路径失败: ${error}`);
-        });
-    }
-  }, [settings.dllPath, injected, addErrorNotification]);
 
   // 如果设置了跳过确认，自动启用注入；如果取消了，禁用注入并 quit
   useEffect(() => {
     if (settings.skipInjectionConfirm) {
-      if (!injected) {
-        // 重新勾选时，清除 DLL 缓存以便重新加载
+      invoke("set_plugin_path", { path: settings.dllPath })
+          .then(() => {
+            setDllPathValid(true);
+            console.log("DLL path validated:", settings.dllPath);
+          })
+          .catch((error) => {
+            setDllPathValid(false);
+            const msg = `DLL 路径错误: ${error}`;
+            console.error(msg);
+            addErrorNotification(msg);
+          });
+      if (!injected && dllPathValid) {
+        // 路径有效才清除 DLL 缓存并启用注入
         invoke("reload_plugin")
           .then(() => {
             console.log("DLL cache cleared, ready to reload");
@@ -43,7 +43,7 @@ function App() {
           })
           .catch((error) => {
             console.error("reload_plugin failed:", error);
-            setInjected(true); // 仍然尝试注入
+            addErrorNotification(`DLL 重新加载失败: ${error}`);
           });
       }
     } else {
@@ -63,31 +63,37 @@ function App() {
         setInjected(false);
       }
     }
-  }, [settings.skipInjectionConfirm, injected, active, setInjected, setActive]);
+  }, [settings.skipInjectionConfirm, injected, active, dllPathValid, setInjected, setActive, addErrorNotification]);
 
-  // 全局注入轮询：已启用注入但未激活时，持续尝试注入
+  // 全局注入轮询：已启用注入、DLL 路径有效、未激活时，持续尝试注入
   useEffect(() => {
     if (!injected) return;
+    if (!dllPathValid) return;
     if (active) return;
-
     const id = setInterval(async () => {
       try {
         const ok = await invoke<boolean>("inject");
-        if (ok) setActive(true);
+        if (ok) {
+          setActive(true);
+          lastInjectErrorRef.current = null;
+        }
       } catch (error) {
         const errorMsg = String(error);
-        console.error("inject failed:", errorMsg);
-        // DLL 加载失败等致命错误，停止注入尝试并显示错误
+        // DLL 加载失败等致命错误，停止注入尝试
         if (errorMsg.includes('DLL加载失败')) {
           console.error("Critical DLL error, disabling injection:", errorMsg);
           setInjected(false);
+        }
+        // 只在错误消息变化时才通知，避免轮询刷屏
+        if (lastInjectErrorRef.current !== errorMsg) {
+          lastInjectErrorRef.current = errorMsg;
           addErrorNotification(errorMsg);
         }
       }
     }, 2000);
 
     return () => clearInterval(id);
-  }, [active, injected, setActive, setInjected, addErrorNotification]);
+  }, [active, injected, dllPathValid, setActive, setInjected, addErrorNotification, lastInjectErrorRef]);
 
   return (
     <div className="h-screen flex flex-col">

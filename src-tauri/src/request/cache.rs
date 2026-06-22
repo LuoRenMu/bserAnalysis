@@ -1,24 +1,35 @@
-use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
-/// Cache entry with expiration time
+/// HTTP 响应元数据（用于条件请求）
+#[derive(Debug, Clone)]
+pub struct HttpMetadata {
+    pub etag: Option<String>,
+    pub last_modified: Option<String>,
+}
+
+/// Cache entry with expiration time and metadata
 struct CacheEntry {
-    data: Box<dyn Any + Send + Sync>,
+    data: String,  // 存储 JSON 字符串
     expires_at: Instant,
-    clone_fn: fn(&Box<dyn Any + Send + Sync>) -> Box<dyn Any + Send + Sync>,
+    http_metadata: Option<HttpMetadata>,
 }
 
 impl CacheEntry {
-    fn new<T: Any + Send + Sync + Clone>(data: T, ttl: Duration) -> Self {
+    fn new(data: String, ttl: Duration) -> Self {
         Self {
-            data: Box::new(data),
+            data,
             expires_at: Instant::now() + ttl,
-            clone_fn: |data| {
-                let typed = data.downcast_ref::<T>().unwrap();
-                Box::new(typed.clone())
-            },
+            http_metadata: None,
+        }
+    }
+
+    fn with_metadata(data: String, ttl: Duration, metadata: HttpMetadata) -> Self {
+        Self {
+            data,
+            expires_at: Instant::now() + ttl,
+            http_metadata: Some(metadata),
         }
     }
 
@@ -26,28 +37,22 @@ impl CacheEntry {
         Instant::now() >= self.expires_at
     }
 
-    fn get<T: Any + Send + Sync + Clone>(&self) -> Option<T> {
+    fn get(&self) -> Option<&str> {
         if self.is_expired() {
             None
         } else {
-            self.data.downcast_ref::<T>().cloned()
+            Some(&self.data)
         }
+    }
+
+    fn metadata(&self) -> Option<&HttpMetadata> {
+        self.http_metadata.as_ref()
     }
 }
 
-impl Clone for CacheEntry {
-    fn clone(&self) -> Self {
-        Self {
-            data: (self.clone_fn)(&self.data),
-            expires_at: self.expires_at,
-            clone_fn: self.clone_fn,
-        }
-    }
-}
-
-/// Generic cache manager using TypeId as key
+/// Simplified cache using String storage
 pub struct Cache {
-    store: RwLock<HashMap<TypeId, CacheEntry>>,
+    store: RwLock<HashMap<String, CacheEntry>>,
     current_language: RwLock<String>,
 }
 
@@ -59,28 +64,40 @@ impl Cache {
         }
     }
 
-    /// Get cached data by type
-    pub fn get<T: Any + Send + Sync + Clone>(&self) -> Option<T> {
+    /// Get cached JSON string by key
+    pub fn get(&self, key: &str) -> Option<String> {
         let store = self.store.read().unwrap();
-        let type_id = TypeId::of::<T>();
-
-        store.get(&type_id).and_then(|entry| entry.get::<T>())
+        store.get(key).and_then(|entry| entry.get().map(|s| s.to_string()))
     }
 
-    /// Set cached data with TTL
-    pub fn set<T: Any + Send + Sync + Clone>(&self, data: T, ttl: Duration) {
+    /// Set cached JSON string with TTL
+    pub fn set(&self, key: String, data: String, ttl: Duration) {
         let mut store = self.store.write().unwrap();
-        let type_id = TypeId::of::<T>();
-
-        store.insert(type_id, CacheEntry::new(data, ttl));
+        store.insert(key, CacheEntry::new(data, ttl));
     }
 
-    /// Remove specific type from cache
-    pub fn remove<T: Any>(&self) {
+    /// Set cached JSON string with TTL and HTTP metadata
+    pub fn set_with_metadata(
+        &self,
+        key: String,
+        data: String,
+        ttl: Duration,
+        metadata: HttpMetadata,
+    ) {
         let mut store = self.store.write().unwrap();
-        let type_id = TypeId::of::<T>();
+        store.insert(key, CacheEntry::with_metadata(data, ttl, metadata));
+    }
 
-        store.remove(&type_id);
+    /// Get HTTP metadata for cached data
+    pub fn get_metadata(&self, key: &str) -> Option<HttpMetadata> {
+        let store = self.store.read().unwrap();
+        store.get(key).and_then(|entry| entry.metadata().cloned())
+    }
+
+    /// Remove cached data by key
+    pub fn remove(&self, key: &str) {
+        let mut store = self.store.write().unwrap();
+        store.remove(key);
     }
 
     /// Clear all cached data
@@ -141,69 +158,77 @@ mod tests {
     fn test_cache_get_set() {
         let cache = Cache::new();
 
-        cache.set("test_string".to_string(), Duration::from_secs(10));
-        assert_eq!(cache.get::<String>(), Some("test_string".to_string()));
+        cache.set("key1".to_string(), "value1".to_string(), Duration::from_secs(10));
+        assert_eq!(cache.get("key1"), Some("value1".to_string()));
 
-        cache.set(42i32, Duration::from_secs(10));
-        assert_eq!(cache.get::<i32>(), Some(42));
+        cache.set("key2".to_string(), "value2".to_string(), Duration::from_secs(10));
+        assert_eq!(cache.get("key2"), Some("value2".to_string()));
     }
 
     #[test]
     fn test_cache_expiration() {
         let cache = Cache::new();
 
-        cache.set("test".to_string(), Duration::from_millis(10));
-        assert_eq!(cache.get::<String>(), Some("test".to_string()));
+        cache.set("key".to_string(), "value".to_string(), Duration::from_millis(10));
+        assert_eq!(cache.get("key"), Some("value".to_string()));
 
         std::thread::sleep(Duration::from_millis(20));
-        assert_eq!(cache.get::<String>(), None);
-    }
-
-    #[test]
-    fn test_cache_different_types() {
-        let cache = Cache::new();
-
-        cache.set("string".to_string(), Duration::from_secs(10));
-        cache.set(123i32, Duration::from_secs(10));
-        cache.set(vec![1, 2, 3], Duration::from_secs(10));
-
-        assert_eq!(cache.get::<String>(), Some("string".to_string()));
-        assert_eq!(cache.get::<i32>(), Some(123));
-        assert_eq!(cache.get::<Vec<i32>>(), Some(vec![1, 2, 3]));
+        assert_eq!(cache.get("key"), None);
     }
 
     #[test]
     fn test_cache_remove() {
         let cache = Cache::new();
 
-        cache.set("test".to_string(), Duration::from_secs(10));
-        assert!(cache.get::<String>().is_some());
+        cache.set("key".to_string(), "value".to_string(), Duration::from_secs(10));
+        assert!(cache.get("key").is_some());
 
-        cache.remove::<String>();
-        assert!(cache.get::<String>().is_none());
+        cache.remove("key");
+        assert!(cache.get("key").is_none());
     }
 
     #[test]
     fn test_cache_clear_all() {
         let cache = Cache::new();
 
-        cache.set("string".to_string(), Duration::from_secs(10));
-        cache.set(42i32, Duration::from_secs(10));
+        cache.set("key1".to_string(), "value1".to_string(), Duration::from_secs(10));
+        cache.set("key2".to_string(), "value2".to_string(), Duration::from_secs(10));
 
         cache.clear_all();
 
-        assert!(cache.get::<String>().is_none());
-        assert!(cache.get::<i32>().is_none());
+        assert!(cache.get("key1").is_none());
+        assert!(cache.get("key2").is_none());
     }
 
     #[test]
     fn test_language_change_clears_cache() {
         let cache = Cache::new();
 
-        cache.set("test".to_string(), Duration::from_secs(10));
-        assert!(cache.get::<String>().is_some());
+        cache.set("key".to_string(), "value".to_string(), Duration::from_secs(10));
+        assert!(cache.get("key").is_some());
 
         cache.update_language("en");
-        assert!(cache.get::<String>().is_none());
+        assert!(cache.get("key").is_none());
+    }
+
+    #[test]
+    fn test_metadata_storage() {
+        let cache = Cache::new();
+
+        let metadata = HttpMetadata {
+            etag: Some("etag123".to_string()),
+            last_modified: Some("Mon, 01 Jan 2024".to_string()),
+        };
+
+        cache.set_with_metadata(
+            "key".to_string(),
+            "value".to_string(),
+            Duration::from_secs(10),
+            metadata.clone(),
+        );
+
+        let retrieved = cache.get_metadata("key").unwrap();
+        assert_eq!(retrieved.etag, Some("etag123".to_string()));
+        assert_eq!(retrieved.last_modified, Some("Mon, 01 Jan 2024".to_string()));
     }
 }

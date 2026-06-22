@@ -2,7 +2,15 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 body {
-  @apply bg-white text-black dark:bg-neutral-950 dark:text-neutral-100 transition-colors duration-300;
+  @apply text-black dark:text-neutral-100 transition-colors duration-300;
+}
+
+body:not(.overlay-window) {
+  @apply bg-white dark:bg-neutral-950;
+}
+
+body.overlay-window {
+  background-color: transparent !important;
 }
 
 .active{
@@ -28,4 +36,74 @@ body {
 
 .animate-slide-in-right {
   animation: slide-in-right 0.3s ease-out;
+}
+
+/* ==================== 自定义滚动条样式 ==================== */
+
+/* 全局滚动条 - Webkit (Chrome, Safari, Edge) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(163 163 163 / 0.5) transparent;
+}
+
+.dark * {
+  scrollbar-color: rgb(82 82 82 / 0.6) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgb(163 163 163 / 0.5);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgb(163 163 163 / 0.7);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: rgb(163 163 163 / 0.9);
+}
+
+/* 深色模式滚动条 */
+.dark *::-webkit-scrollbar-thumb {
+  background: rgb(82 82 82 / 0.6);
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background: rgb(82 82 82 / 0.8);
+}
+
+.dark *::-webkit-scrollbar-thumb:active {
+  background: rgb(82 82 82);
+}
+
+/* 滚动条交叉点 (水平和垂直滚动条相交的角) */
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* 细滚动条变体 (用于小区域) */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+/* 隐藏滚动条但保持可滚动 (用于特定组件) */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }

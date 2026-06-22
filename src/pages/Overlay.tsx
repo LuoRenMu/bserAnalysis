@@ -8,6 +8,7 @@ import {CharacterBrief, GameSnapshot} from "../types/bser";
 import type {CharacterUseStats, PlayerSummary} from "../types/search";
 import {activeAtom, injectAtom, snapshotAtom} from "../store";
 import {appSettingsAtom} from "../utils/settings";
+import {startOverlayMonitoring, stopOverlayMonitoring} from "../utils/overlayApi";
 
 interface PlayerProfileResponse {
     level: number;
@@ -20,9 +21,6 @@ interface PlayerProfileResponse {
 
 /// 用排位档案（mode 3）展示对局玩家的常用英雄。
 const OVERVIEW_MODE = 3;
-/// 未开始游戏（大厅/选人）时高频轮询以跟踪选人；游戏中降频，仅用于探测结束。
-const POLL_PREGAME_MS = 1000;
-const POLL_INGAME_MS = 3000;
 
 export default function Overlay() {
     const {t} = useTranslation();
@@ -32,16 +30,7 @@ export default function Overlay() {
     const [charactersById, setCharactersById] = useState<Record<number, CharacterBrief>>({});
     const fetchedRef = useRef<Set<string>>(new Set());
     const injected = useAtomValue(injectAtom);
-    const [settings, setSettings] = useAtom(appSettingsAtom);
-    const boundPlayerNameRef = useRef<string>("");
-    const playerDataFetchedRef = useRef(false);
-
-    // 更新绑定玩家名称引用
-    useEffect(() => {
-        boundPlayerNameRef.current = settings.boundPlayerName;
-        // 当绑定玩家名称改变时，重置已获取标记
-        playerDataFetchedRef.current = false;
-    }, [settings.boundPlayerName]);
+    const settings = useAtomValue(appSettingsAtom);
 
     // 角色 id→头像 映射只需拉一次（后端按周缓存）。
     useEffect(() => {
@@ -62,35 +51,39 @@ export default function Overlay() {
         };
     }, []);
 
+    // 启动/停止后端监控
     useEffect(() => {
-        if (!injected) return;
-        if (!active) return;
+        if (!injected || !active) {
+            stopOverlayMonitoring().catch(console.error);
+            return;
+        }
+
+        // 启动后端监控
+        startOverlayMonitoring().catch(console.error);
+
+        // 清理：停止监控
+        return () => {
+            stopOverlayMonitoring().catch(console.error);
+        };
+    }, [injected, active]);
+
+    // 监听后端推送的 overlay 数据更新
+    useEffect(() => {
+        // TODO: 从后端接收 overlay-data-updated 事件
+        // 暂时保留前端轮询以便过渡
+        if (!injected || !active) return;
+
         let cancelled = false;
         let timer: ReturnType<typeof setTimeout> | undefined;
 
         const tick = async () => {
             if (cancelled) return;
-            let nextDelay = POLL_INGAME_MS;
             try {
                 const result = await invoke<GameSnapshot>("fetch");
                 if (cancelled) return;
 
-                // 如果有绑定玩家名称且 snapshot 还没有名称，使用绑定的名称
-                if (boundPlayerNameRef.current && result.nickname.trim().length === 0) {
-                    result.nickname = boundPlayerNameRef.current;
-                }
-
                 if (result.nickname.trim().length > 0) {
                     setSnapshot(result);
-                    nextDelay = result.is_game_started ? POLL_INGAME_MS : POLL_PREGAME_MS;
-
-                    // 自动将玩家名称设置到 settings
-                    if (result.nickname !== settings.boundPlayerName) {
-                        setSettings((prev) => ({
-                            ...prev,
-                            boundPlayerName: result.nickname,
-                        }));
-                    }
                 } else if (result.command === 0) {
                     console.log("game ended");
                     setActive(false);
@@ -99,7 +92,7 @@ export default function Overlay() {
             } catch (error) {
                 console.error("fetch snapshot failed:", error);
             }
-            if (!cancelled) timer = setTimeout(tick, nextDelay);
+            if (!cancelled) timer = setTimeout(tick, 3000);
         };
 
         void tick();
@@ -170,6 +163,7 @@ export default function Overlay() {
             }
         })();
     }, [snapshot]);
+
     return (
         <div className="h-full">
             <div className="h-full">

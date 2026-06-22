@@ -129,7 +129,9 @@
     "avgAnimal": "平均動物",
     "avgCredit": "平均クレジット",
     "avgVision": "平均視界",
-    "plays": "試合数"
+    "plays": "試合数",
+    "prevPage": "前のページ",
+    "nextPage": "次のページ"
   },
   "nav": {
     "search": "検索",
@@ -167,10 +169,19 @@
     "originalName": "元の名前",
     "aliasName": "エイリアス",
     "noAliases": "エイリアスなし",
+    "confirmEnableInjectionTitle": "ゲーム注入の有効化を確認",
+    "confirmEnableInjectionDesc": "私密马赛",
+    "confirmEnableInjectionContinue": "続行",
+    "confirmEnableInjectionSecondTitle": "最終確認",
+    "confirmEnableInjectionSecondDesc": "本当にゲーム注入を有効にしますか？潜在的なリスクを完全に理解していることを確認してください。",
+    "confirmEnableInjectionConfirm": "有効化を確認",
     "betaVersion": "BETA VERSION QQグループ: 654087758"
   },
   "overlay": {
     "waitingForGame": "ゲームを待っています...",
+    "title": "対戦アシスタント",
+    "teammates": "味方",
+    "enemies": "敵",
     "players": "プレイヤー",
     "mode": "モード",
     "team": "チーム",

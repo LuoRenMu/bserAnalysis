@@ -6,12 +6,7 @@ use serde::Serialize;
 use crate::request::{
     dakgg_api::EternalReturnDakGgApi,
     error::{RequestError, Result},
-    models::{
-        Data, DakGgCharacterImgType, DakGgCharactersResponse, DakGgItemsResponse,
-        DakGgSkillsResponse, DakGgTacticalSkillResponse, DakGgTiersResponse,
-        DakGgTraitSkillsResponse, DakGgWeaponResponse, ProfilePlayerSeason,
-        ProfilePlayerSeasonOverview, UserGame,
-    },
+    models::*,
     types::{DakGgTeamMode, MatchingMode},
 };
 
@@ -224,30 +219,27 @@ pub async fn assemble_player_search(
 ) -> Result<PlayerSearchRender> {
     let page = page.max(1);
     let matches_mode = mode;
-
     let profile_mode = if mode == MatchingMode::All { MatchingMode::Rank } else { mode };
-
     let team_mode = DakGgTeamMode::All;
 
-    let season = EternalReturnDakGgApi::get_current_season().await?;
-    let profile = EternalReturnDakGgApi::get_profile(nickname).await?;
-    let games_response = EternalReturnDakGgApi::get_game(
-        nickname,
-        Some(&season.season_type),
-        matches_mode,
-        team_mode,
-        page,
-    )
-    .await?;
-    let games = games_response.matches;
+    // 并发获取所有需要的数据
+    let (profile, current_season, matches_response, characters, tiers, items, weapons, trait_skills, tactical_skills) = tokio::try_join!(
+        EternalReturnDakGgApi::get_profile(nickname),
+        EternalReturnDakGgApi::get_current_season(),
+        EternalReturnDakGgApi::get_game(nickname, None, matches_mode, team_mode, page),
+        EternalReturnDakGgApi::get_characters(),
+        EternalReturnDakGgApi::get_tiers(),
+        EternalReturnDakGgApi::get_items(),
+        EternalReturnDakGgApi::get_weapons(),
+        EternalReturnDakGgApi::get_trait_skills(),
+        EternalReturnDakGgApi::get_tactical_skills(),
+    )?;
 
-    let characters = EternalReturnDakGgApi::get_characters().await?;
-    let tiers = EternalReturnDakGgApi::get_tiers().await?;
-    let items = EternalReturnDakGgApi::get_items().await?;
-    let weapons = EternalReturnDakGgApi::get_weapons().await?;
-    let trait_skills = EternalReturnDakGgApi::get_trait_skills().await?;
-    let tactical_skills = EternalReturnDakGgApi::get_tactical_skills().await?;
+    // 解构数据
+    let games = matches_response.matches;
+    let meta = matches_response.meta;
 
+    // 数据转换逻辑
     let season_overviews = &profile.player_season_overviews;
     let season_overview = season_overviews
         .iter()
@@ -256,7 +248,7 @@ pub async fn assemble_player_search(
 
     let profile_image_url = profile_image_url(season_overview, season_overviews, &characters);
     let recent_players = recent_players(season_overviews, &characters, profile_mode);
-    let data = player_data(
+    let data = player_data_convert(
         season_overview,
         &profile.player_seasons,
         &tiers,
@@ -278,7 +270,6 @@ pub async fn assemble_player_search(
             )
         })
         .collect();
-    let meta = games_response.meta;
     let current_page = if meta.page > 0 { meta.page } else { page };
     let total_page = if meta.count <= 0 {
         0
@@ -300,8 +291,8 @@ pub async fn assemble_player_search(
         matches,
         recent_players,
         character_use_stats,
-        season: season.name,
-        season_id: season.id,
+        season: current_season.name,
+        season_id: current_season.id,
         mode: matching_mode_name(profile_mode).to_string(),
         summary,
         page: current_page,
@@ -1312,7 +1303,7 @@ fn recent_players(
         .unwrap_or_default()
 }
 
-fn player_data(
+fn player_data_convert(
     season_overview: Option<&ProfilePlayerSeasonOverview>,
     player_seasons: &[ProfilePlayerSeason],
     tiers: &DakGgTiersResponse,

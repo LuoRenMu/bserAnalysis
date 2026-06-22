@@ -1,15 +1,56 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { errorNotificationsAtom, removeErrorNotificationAtom } from "../store/errorStore";
+import { errorNotificationsAtom, removeErrorNotificationAtom, successNotificationsAtom, removeSuccessNotificationAtom } from "../store/errorStore";
 
 export default function ErrorNotifications() {
-  const notifications = useAtomValue(errorNotificationsAtom);
-  const removeNotification = useSetAtom(removeErrorNotificationAtom);
+  const errorNotifications = useAtomValue(errorNotificationsAtom);
+  const successNotifications = useAtomValue(successNotificationsAtom);
+  const removeErrorNotification = useSetAtom(removeErrorNotificationAtom);
+  const removeSuccessNotification = useSetAtom(removeSuccessNotificationAtom);
 
-  if (notifications.length === 0) return null;
+  if (errorNotifications.length === 0 && successNotifications.length === 0) return null;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-50 flex flex-col items-end justify-end gap-2 p-4">
-      {notifications.map((notification) => (
+      {successNotifications.map((notification) => (
+        <div
+          key={notification.id}
+          className="pointer-events-auto animate-slide-in-right max-w-md rounded-lg border border-green-300 bg-green-50 px-4 py-3 shadow-lg dark:border-green-900 dark:bg-green-950/90"
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-green-600 dark:text-green-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="flex-1 text-sm text-green-800 dark:text-green-200">
+              {notification.message}
+            </div>
+            <button
+              type="button"
+              onClick={() => removeSuccessNotification(notification.id)}
+              className="flex-shrink-0 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
+              aria-label="关闭"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      ))}
+      {errorNotifications.map((notification) => (
         <div
           key={notification.id}
           className="pointer-events-auto animate-slide-in-right max-w-md rounded-lg border border-red-300 bg-red-50 px-4 py-3 shadow-lg dark:border-red-900 dark:bg-red-950/90"
@@ -33,7 +74,7 @@ export default function ErrorNotifications() {
             </div>
             <button
               type="button"
-              onClick={() => removeNotification(notification.id)}
+              onClick={() => removeErrorNotification(notification.id)}
               className="flex-shrink-0 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
               aria-label="关闭"
             >

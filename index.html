@@ -5,6 +5,39 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tauri + React + Typescript</title>
+    <style>
+      /* 为 overlay 路由设置透明背景 - 在任何内容加载前就生效 */
+      html, body, #root {
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background-color: #ffffff;
+      }
+
+      /* overlay 窗口完全透明 */
+      body.overlay-window,
+      body.overlay-window #root {
+        background-color: transparent !important;
+      }
+    </style>
+    <script>
+      // 检测是否是 overlay 路由，在 DOM 加载前就设置透明
+      (function() {
+        if (window.location.pathname === '/game-overlay') {
+          // 立即添加 class，不等待 DOMContentLoaded
+          document.documentElement.classList.add('overlay-window');
+          if (document.body) {
+            document.body.classList.add('overlay-window');
+          } else {
+            document.addEventListener('DOMContentLoaded', function() {
+              document.body.classList.add('overlay-window');
+            });
+          }
+        }
+      })();
+    </script>
   </head>
 
   <body>

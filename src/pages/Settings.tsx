@@ -1,11 +1,17 @@
 import {useEffect, useMemo, useRef, useState} from "react";
-import {useAtom, useAtomValue} from "jotai";
+import {useAtom, useAtomValue, useSetAtom} from "jotai";
 import {useTranslation} from "react-i18next";
 import {appSettingsAtom, DEFAULT_DLL_PATH, type AliasEntry} from "../utils/settings";
 import {characterBriefAtom, injectAtom} from "../store";
 import type {CharacterBrief} from "../types/bser";
 import DoubleConfirmDialog from "../components/DoubleConfirmDialog";
 import LanguageSelector from "../components/LanguageSelector";
+import {
+    registerOverlayShortcut,
+    toggleOverlayWindow,
+} from "../utils/overlayApi";
+import {clearAllCache} from "../utils/cacheApi";
+import {addErrorNotificationAtom, addSuccessNotificationAtom} from "../store/errorStore";
 
 function CharacterAliasPicker({
                                   value,
@@ -297,6 +303,8 @@ export default function Settings() {
     const characters = useAtomValue(characterBriefAtom);
     const setInjected = useAtom(injectAtom)[1];
     const [confirmOpen, setConfirmOpen] = useState(false);
+    const addErrorNotification = useSetAtom(addErrorNotificationAtom);
+    const addSuccessNotification = useSetAtom(addSuccessNotificationAtom);
     const [pendingSkipConfirm, setPendingSkipConfirm] = useState(false);
 
     return (
@@ -333,7 +341,7 @@ export default function Settings() {
                 </section>
 
                 <section
-                    className="overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+                    className="overflow-hidden `rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
                     <div className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
                         <h2 className="text-sm font-bold text-neutral-950 dark:text-neutral-50">{t('settings.languageSection')}</h2>
                         <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
@@ -434,6 +442,106 @@ export default function Settings() {
                     aliasLabel={t('settings.aliasName')}
                     onChange={(playerAliases) => setSettings((current) => ({...current, playerAliases}))}
                 />
+
+                {/* 游戏覆盖层测试 */}
+                <section
+                    className="overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+                    <div className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
+                        <h2 className="text-sm font-bold text-neutral-950 dark:text-neutral-50">游戏覆盖层</h2>
+                        <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                            测试游戏内覆盖层窗口
+                        </p>
+                    </div>
+
+                    <div className="space-y-4 p-4">
+                        {/* 快捷键设置 */}
+                        <div>
+                            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                                快捷键
+                            </label>
+                            <input
+                                type="text"
+                                value={settings.overlayShortcut}
+                                onChange={(event) =>
+                                    setSettings((current) => ({
+                                        ...current,
+                                        overlayShortcut: event.target.value,
+                                    }))
+                                }
+                                onBlur={() => {
+                                    const shortcut = settings.overlayShortcut.trim();
+                                    if (!shortcut) return;
+                                    registerOverlayShortcut(shortcut).catch((error) => {
+                                        console.error('Failed to register shortcut:', error);
+                                        addErrorNotification(`快捷键无效: ${error}`);
+                                    });
+                                }}
+                                placeholder="如：` 或 Ctrl+Shift+O 或 F1"
+                                spellCheck={false}
+                                className="h-10 w-full rounded border border-neutral-300 bg-white px-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-500 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:focus:border-neutral-600"
+                            />
+                            <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                                输入快捷键组合（修饰键用 Ctrl/Shift/Alt/Meta，主键用字母/数字/F1-F12/` 等），用 + 连接。长按显示覆盖层，松开关闭。
+                            </p>
+                        </div>
+
+                        {/* 测试按钮 */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                toggleOverlayWindow().catch((error) => {
+                                    console.error('Failed to toggle overlay:', error);
+                                });
+                            }}
+                            className="h-10 rounded-lg border border-neutral-300 bg-white px-4 text-sm font-semibold text-neutral-900 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
+                        >
+                            显示/隐藏覆盖层
+                        </button>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                            长按设置的快捷键也可在游戏中显示覆盖层，松开关闭
+                        </p>
+                    </div>
+                </section>
+
+                {/* 缓存管理 */}
+                <section
+                    className="overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+                    <div className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
+                        <h2 className="text-sm font-bold text-neutral-950 dark:text-neutral-50">{t('settings.cacheManagement')}</h2>
+                        <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                            {t('settings.cacheManagementDesc')}
+                        </p>
+                    </div>
+
+                    <div className="space-y-3 p-4">
+                        {/* 清除所有缓存 */}
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                                <div className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                                    {t('settings.clearAllCache')}
+                                </div>
+                                <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                                    {t('settings.clearAllCacheDesc')}
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    try {
+                                        await clearAllCache();
+                                        addSuccessNotification(t('settings.cacheCleared'));
+                                    } catch (error) {
+                                        console.error('Failed to clear all cache:', error);
+                                        addErrorNotification(t('settings.cacheClearFailed'));
+                                    }
+                                }}
+                                className="h-8 rounded border border-red-300 bg-white px-3 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-800 dark:bg-neutral-950 dark:text-red-400 dark:hover:bg-red-950"
+                            >
+                                {t('settings.clearAll')}
+                            </button>
+                        </div>
+                    </div>
+                </section>
             </div>
 
             <DoubleConfirmDialog

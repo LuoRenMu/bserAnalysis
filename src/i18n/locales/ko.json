@@ -129,7 +129,9 @@
     "avgAnimal": "평균 동물",
     "avgCredit": "평균 크레딧",
     "avgVision": "평균 시야",
-    "plays": "경기 수"
+    "plays": "경기 수",
+    "prevPage": "이전 페이지",
+    "nextPage": "다음 페이지"
   },
   "nav": {
     "search": "검색",
@@ -167,10 +169,19 @@
     "originalName": "원래 이름",
     "aliasName": "별칭",
     "noAliases": "별칭 없음",
+    "confirmEnableInjectionTitle": "게임 주입 활성화 확인",
+    "confirmEnableInjectionDesc": "私密马赛",
+    "confirmEnableInjectionContinue": "계속",
+    "confirmEnableInjectionSecondTitle": "최종 확인",
+    "confirmEnableInjectionSecondDesc": "정말로 게임 주입을 활성화하시겠습니까? 잠재적인 위험을 완전히 이해했는지 확인하세요.",
+    "confirmEnableInjectionConfirm": "활성화 확인",
     "betaVersion": "BETA VERSION QQ 그룹: 654087758"
   },
   "overlay": {
     "waitingForGame": "게임 대기 중...",
+    "title": "전적 도우미",
+    "teammates": "팀원",
+    "enemies": "적",
     "players": "플레이어",
     "mode": "모드",
     "team": "팀",

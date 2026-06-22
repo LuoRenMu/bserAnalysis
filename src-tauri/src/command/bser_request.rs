@@ -17,12 +17,24 @@ fn log_error(operation: &str, context: &str, error: RequestError) -> String {
     error.to_string()
 }
 
+use crate::request::cache::CACHE;
+
+/// 清除所有缓存
 #[tauri::command]
-pub async fn set_language(hl: String) -> Result<(), String> {
+pub async fn clear_all_cache() -> Result<(), String> {
+    CACHE.clear_all();
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn set_language(
+    manager: tauri::State<'_, crate::settings::SettingsManager>,
+    hl: String,
+) -> Result<(), String> {
     log::info!("set_language hl={hl:?}");
 
-    // Update language in config
-    crate::config::set_language(&hl);
+    // Update language in settings manager
+    manager.set_language(&hl);
 
     // Update cache language and clear if changed
     crate::request::cache::CACHE.update_language(&hl);
