@@ -132,3 +132,13 @@ export async function listenOverlayDataUpdated<T>(
 ): Promise<UnlistenFn> {
   return await listen<T>("overlay-data-updated", (event) => onData(event.payload));
 }
+
+/**
+ * Listens for injection-lost events: backend emits this when fetch
+ * consistently returns None (game closed or injection detached).
+ */
+export async function listenOverlayInjectionLost(
+  onLost: () => void,
+): Promise<UnlistenFn> {
+  return await listen("overlay-injection-lost", () => onLost());
+}

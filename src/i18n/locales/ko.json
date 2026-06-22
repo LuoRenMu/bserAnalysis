@@ -180,6 +180,7 @@
   "overlay": {
     "waitingForGame": "게임 대기 중...",
     "title": "전적 도우미",
+    "you": "나",
     "teammates": "팀원",
     "enemies": "적",
     "players": "플레이어",

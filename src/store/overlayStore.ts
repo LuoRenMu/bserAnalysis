@@ -4,17 +4,18 @@ import type { GameSnapshot } from "../types/bser";
 import type { PlayerSearchRender } from "../types/search";
 
 /**
- * Whether the plugin has been injected and the game is active.
- */
-export const activeAtom = atom(false);
-
-/**
  * Latest game-data snapshot (null = no data yet).
  */
 export const snapshotAtom = atom<GameSnapshot | null>(null);
 
 /**
- * Whether injection is enabled.
+ * Whether the user has enabled injection attempts (frontend setting).
+ * Distinct from `injectAtom` which is only true after backend confirms success.
+ */
+export const injectEnabledAtom = atom<boolean>(false);
+
+/**
+ * Whether the backend has successfully injected into the game.
  */
 export const injectAtom = atom<boolean>(false);
 

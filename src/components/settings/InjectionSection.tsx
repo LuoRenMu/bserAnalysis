@@ -6,10 +6,9 @@ import DoubleConfirmDialog from "../DoubleConfirmDialog";
 export interface InjectionSectionProps {
     settings: AppSettings;
     setSettings: (update: (current: AppSettings) => AppSettings) => void;
-    onConfirmEnable: () => void;
 }
 
-export default function InjectionSection({settings, setSettings, onConfirmEnable}: InjectionSectionProps) {
+export default function InjectionSection({settings, setSettings}: InjectionSectionProps) {
     const {t} = useTranslation();
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [pendingSkipConfirm, setPendingSkipConfirm] = useState(false);
@@ -106,7 +105,6 @@ export default function InjectionSection({settings, setSettings, onConfirmEnable
                             ...current,
                             skipInjectionConfirm: true,
                         }));
-                        onConfirmEnable();
                         setPendingSkipConfirm(false);
                     }
                 }}

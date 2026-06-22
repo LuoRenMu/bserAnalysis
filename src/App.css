@@ -38,6 +38,48 @@ body.overlay-window {
   animation: slide-in-right 0.3s ease-out;
 }
 
+/* ==================== 流动彩色文字动画 ==================== */
+
+@keyframes rainbow-flow {
+  0%   { background-position:   0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position:   0% 50%; }
+}
+
+.rainbow-text {
+  position: relative;
+  display: inline-block;
+  background: linear-gradient(
+    90deg,
+    #e60000, #e66000, #cccc00, #00b300, #009999, #0000cc, #7a00cc, #cc0099, #e60000
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: rainbow-flow 4s linear infinite;
+  font-weight: 800;
+}
+
+.rainbow-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  color: #000;
+  text-shadow:
+    1px 1px 0 #000,
+    2px 2px 0 #000,
+    3px 3px 0 #000,
+    4px 4px 0 #000,
+    5px 5px 0 #000,
+    6px 6px 1px rgba(0,0,0,0.8),
+    7px 7px 2px rgba(0,0,0,0.6);
+  -webkit-text-fill-color: #000;
+}
+
 /* ==================== 自定义滚动条样式 ==================== */
 
 /* 全局滚动条 - Webkit (Chrome, Safari, Edge) */

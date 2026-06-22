@@ -1,12 +1,12 @@
 import {NavLink} from "react-router-dom";
 import {useAtomValue} from "jotai";
 import {useTranslation} from "react-i18next";
-import {activeAtom} from "../store";
+import {injectAtom} from "../store";
 import {useState} from "react";
 
 export default function Sidebar() {
     const {t} = useTranslation();
-    const active = useAtomValue(activeAtom);
+    const injected = useAtomValue(injectAtom);
     const [leaderboardExpanded, setLeaderboardExpanded] = useState(false);
 
     return (
@@ -130,11 +130,11 @@ export default function Sidebar() {
             {/* spacer */}
             <div className="flex-1"/>
 
-            {/* active status — bottom */}
+            {/* injected status — bottom */}
             <div className="flex items-center gap-2 px-4 py-3 border-t border-neutral-200 dark:border-neutral-800">
-                <span className={`inline-block w-2 h-2 rounded-full ${active ? "bg-green-500" : "bg-red-500"}`}/>
+                <span className={`inline-block w-2 h-2 rounded-full ${injected ? "bg-green-500" : "bg-red-500"}`}/>
                 <span className="text-xs text-neutral-500 dark:text-neutral-400 select-none">
-                    {active ? t('common.active') : t('common.inactive')}
+                    {injected ? t('common.active') : t('common.inactive')}
                 </span>
             </div>
         </aside>

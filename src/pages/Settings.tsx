@@ -2,7 +2,7 @@ import {useState} from "react";
 import {useAtom, useAtomValue} from "jotai";
 import {useTranslation} from "react-i18next";
 import {appSettingsAtom} from "../utils/settings";
-import {characterBriefAtom, injectAtom} from "../store";
+import {characterBriefAtom} from "../store";
 import SettingsTabs, {type SettingsTab} from "../components/settings/SettingsTabs";
 import BoundPlayerSection from "../components/settings/BoundPlayerSection";
 import InjectionSection from "../components/settings/InjectionSection";
@@ -16,7 +16,6 @@ export default function Settings() {
     const {t} = useTranslation();
     const [settings, setSettings] = useAtom(appSettingsAtom);
     const characters = useAtomValue(characterBriefAtom);
-    const setInjected = useAtom(injectAtom)[1];
     const [activeTab, setActiveTab] = useState<SettingsTab>("main");
 
     return (
@@ -27,7 +26,7 @@ export default function Settings() {
                 <div className="mx-auto max-w-312.5 space-y-4">
                     <header>
                         <h1 className="text-2xl font-black text-neutral-950 dark:text-neutral-50">{t('settings.title')}</h1>
-                        <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                        <p className="mt-1 text-3xl rainbow-text " data-text={t('settings.betaVersion')}>
                             {t('settings.betaVersion')}
                         </p>
                     </header>
@@ -37,7 +36,6 @@ export default function Settings() {
                         <InjectionSection
                             settings={settings}
                             setSettings={setSettings}
-                            onConfirmEnable={() => setInjected(true)}
                         />
                         <OverlaySection settings={settings} setSettings={setSettings}/>
                     </>)}

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { GameReference, InfusionRef, RefEntry, SkillRef } from "../types/bser";
+import {injectAtom} from "../store";
+import {useAtom} from "jotai";
 
 /** id→详情 的查询表，供悬浮提示用。 */
 export interface GameData {
@@ -44,16 +46,14 @@ export function loadGameData(): Promise<GameData> {
 
 export function useGameData(): GameData | null {
     const [data, setData] = useState<GameData | null>(null);
+    const [injected, _setInjected] = useAtom(injectAtom);
     useEffect(() => {
-        let cancelled = false;
+        if (!injected ) return;
         void loadGameData()
             .then((d) => {
-                if (!cancelled) setData(d);
+                setData(d);
             })
             .catch((error) => console.error("fetch_game_reference failed:", error));
-        return () => {
-            cancelled = true;
-        };
     }, []);
     return data;
 }

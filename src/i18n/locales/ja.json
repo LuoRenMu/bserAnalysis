@@ -180,6 +180,7 @@
   "overlay": {
     "waitingForGame": "ゲームを待っています...",
     "title": "対戦アシスタント",
+    "you": "あなた",
     "teammates": "味方",
     "enemies": "敵",
     "players": "プレイヤー",

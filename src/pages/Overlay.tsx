@@ -4,11 +4,10 @@ import {useAtom, useAtomValue} from "jotai";
 import {useTranslation} from "react-i18next";
 import {normalizeName, profile} from "../components/profile";
 import type {PlayerStatsByName} from "../components/profile";
-import {CharacterBrief, GameSnapshot} from "../types/bser";
+import {CharacterBrief} from "../types/bser";
 import type {CharacterUseStats, PlayerSummary} from "../types/search";
-import {activeAtom, injectAtom, snapshotAtom} from "../store";
+import {injectAtom, snapshotAtom} from "../store";
 import {appSettingsAtom} from "../utils/settings";
-import {startOverlayMonitoring, stopOverlayMonitoring} from "../utils/overlayApi";
 
 interface PlayerProfileResponse {
     level: number;
@@ -24,15 +23,14 @@ const OVERVIEW_MODE = 3;
 
 export default function Overlay() {
     const {t} = useTranslation();
-    const [active, setActive] = useAtom(activeAtom);
-    const [snapshot, setSnapshot] = useAtom(snapshotAtom);
+    const [snapshot, _setSnapshot] = useAtom(snapshotAtom);
     const [statsByName, setStatsByName] = useState<PlayerStatsByName>({});
     const [charactersById, setCharactersById] = useState<Record<number, CharacterBrief>>({});
     const fetchedRef = useRef<Set<string>>(new Set());
     const injected = useAtomValue(injectAtom);
     const settings = useAtomValue(appSettingsAtom);
 
-    // 角色 id→头像 映射只需拉一次（后端按周缓存）。
+    // 角色 id→头像
     useEffect(() => {
         let cancelled = false;
         void (async () => {
@@ -51,64 +49,13 @@ export default function Overlay() {
         };
     }, []);
 
-    // 启动/停止后端监控
+    // 注入断开后清空已查询缓存，下一局重新拉取。
     useEffect(() => {
-        if (!injected || !active) {
-            stopOverlayMonitoring().catch(console.error);
-            return;
-        }
-
-        // 启动后端监控
-        startOverlayMonitoring().catch(console.error);
-
-        // 清理：停止监控
-        return () => {
-            stopOverlayMonitoring().catch(console.error);
-        };
-    }, [injected, active]);
-
-    // 监听后端推送的 overlay 数据更新
-    useEffect(() => {
-        // TODO: 从后端接收 overlay-data-updated 事件
-        // 暂时保留前端轮询以便过渡
-        if (!injected || !active) return;
-
-        let cancelled = false;
-        let timer: ReturnType<typeof setTimeout> | undefined;
-
-        const tick = async () => {
-            if (cancelled) return;
-            try {
-                const result = await invoke<GameSnapshot>("fetch");
-                if (cancelled) return;
-
-                if (result.nickname.trim().length > 0) {
-                    setSnapshot(result);
-                } else if (result.command === 0) {
-                    console.log("game ended");
-                    setActive(false);
-                    return;
-                }
-            } catch (error) {
-                console.error("fetch snapshot failed:", error);
-            }
-            if (!cancelled) timer = setTimeout(tick, 3000);
-        };
-
-        void tick();
-        return () => {
-            cancelled = true;
-            if (timer != null) clearTimeout(timer);
-        };
-    }, [active, injected, setActive, setSnapshot]);
-
-    // 游戏结束后清空已查询缓存，下一局重新拉取。
-    useEffect(() => {
-        if (!active) {
+        if (!injected) {
             fetchedRef.current.clear();
             setStatsByName({});
         }
-    }, [active]);
+    }, [injected]);
 
     // 对局玩家出现后，按昵称查询其档案常用英雄。每个昵称只查一次，
     // 分组并发查询：>8人时每3人一组，≤8人时每4人一组。
@@ -167,10 +114,10 @@ export default function Overlay() {
     return (
         <div className="h-full">
             <div className="h-full">
-                {snapshot ? (
+                {!injected ? ( <div className="mt-52 text-center text-5xl text-gray-500">{t('overlay.waitingForGame')}</div>) : snapshot ? (
                     profile(snapshot, statsByName, charactersById, settings)
                 ) : (
-                    <div className="mt-52 text-center text-5xl text-gray-500">{t('overlay.waitingForGame')}</div>
+                    <div className="mt-52 text-center text-5xl text-gray-500">等待进入大厅获取数据...</div>
                 )}
             </div>
         </div>

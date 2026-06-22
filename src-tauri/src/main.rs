@@ -1,19 +1,15 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::sync::Arc;
 
 use tauri::Manager;
 use tauri_plugin_log::{Target, TargetKind, TimezoneStrategy};
 use tauri_plugin_prevent_default::Flags;
 
 fn main() {
-    // 初始化游戏数据源
-    let dll_path = bseranalysis_lib::config::get_plugin_path();
-    let data_source: Arc<dyn bseranalysis_lib::game_data::GameDataSource> =
-        Arc::new(bseranalysis_lib::game_data::DllGameDataSource::new(dll_path));
-    let game_data_manager =
-        bseranalysis_lib::game_data::GameDataManager::new(Arc::clone(&data_source));
+    // 初始化共享 DLL 插件状态
+    let plugin_state = bseranalysis_lib::core::plugin_state::PluginState::new();
+    let plugin_handle = plugin_state.handle();
 
     // 初始化设置管理器
     let settings_manager = bseranalysis_lib::settings::SettingsManager::new();
@@ -40,15 +36,15 @@ fn main() {
         )
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
-        .manage(game_data_manager)
+        .manage(plugin_state)
         .manage(settings_manager)
         .setup(move |app| {
             let app_handle = app.handle().clone();
 
-            // 初始化 OverlayManager（需要 AppHandle + 数据源）
+            // 初始化 OverlayManager（共享同一个 Plugin 句柄）
             let overlay_manager = bseranalysis_lib::overlay::OverlayManager::new(
                 app_handle.clone(),
-                data_source,
+                plugin_handle,
             );
             app.manage(overlay_manager);
 
@@ -87,8 +83,7 @@ fn main() {
             bseranalysis_lib::command::bser_client::inject,
             bseranalysis_lib::command::bser_client::quit,
             bseranalysis_lib::command::bser_client::fetch,
-            bseranalysis_lib::command::bser_client::reload_plugin,
-            bseranalysis_lib::command::bser_client::set_plugin_path,
+            bseranalysis_lib::command::bser_client::load,
             bseranalysis_lib::command::bser_client::get_plugin_path,
             bseranalysis_lib::command::bser_request::set_language,
             bseranalysis_lib::command::bser_request::search_player,
@@ -129,3 +124,4 @@ fn main() {
             }
         });
 }
+

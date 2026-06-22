@@ -4,7 +4,6 @@ use crate::overlay::{is_overlay_visible, set_overlay_visible, OverlayManager};
 pub async fn start_overlay_monitoring(
     manager: tauri::State<'_, OverlayManager>,
 ) -> Result<(), String> {
-    log::info!("Starting overlay monitoring");
     manager.start_monitoring();
     Ok(())
 }
@@ -13,7 +12,6 @@ pub async fn start_overlay_monitoring(
 pub async fn stop_overlay_monitoring(
     manager: tauri::State<'_, OverlayManager>,
 ) -> Result<(), String> {
-    log::info!("Stopping overlay monitoring");
     manager.stop_monitoring();
     Ok(())
 }

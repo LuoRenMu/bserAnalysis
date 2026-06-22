@@ -62,6 +62,7 @@
   "overlay": {
     "waitingForGame": "等待遊戲運行...",
     "title": "對局助手",
+    "you": "你",
     "teammates": "隊友",
     "enemies": "敵人",
     "players": "玩家",
