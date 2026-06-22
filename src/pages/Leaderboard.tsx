@@ -190,7 +190,6 @@ export default function Leaderboard() {
   const visiblePages = calculateVisiblePages(page, result?.totalPage ?? 0, PAGE_BUTTON_LIMIT);
 
   // dak.gg 的 rankDiff 实测恒为 0，所以排名涨跌由本地对比上一次看到的排名得出
-  // （按 服务器+赛季 存到 localStorage；刷新后即可看到自上次以来的变化）。
   const snapshotKey = result ? `lb_ranks_${server}__${result.seasonId}` : null;
 
   const rankDeltas = useMemo(() => {
