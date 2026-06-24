@@ -185,7 +185,7 @@ export interface CreditSource {
 // --- Search 页面 UI 渲染类型（原在 Search.tsx 文件内定义） ---
 
 /** 技能图标展示用的数据 */
-export interface SkillIcon {
+interface SkillIcon {
   url: string;
   kind: RefKind;
   id: number;

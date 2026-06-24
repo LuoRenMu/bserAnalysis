@@ -23,7 +23,7 @@ import {navigateToCharacterByName} from "../utils/navigation";
 import {calculateVisiblePages} from "../utils/pagination";
 import {accentForRank} from "../utils/convert.ts";
 import {signed} from "../utils/format";
-import {ErrorBanner, PaginationNav, RefreshIcon, SearchIcon} from "../components/ui";
+import {ErrorBanner, PageShell, PaginationNav, RefreshIcon, SearchIcon} from "../components/ui";
 
 type StatRow = [string, string];
 
@@ -269,6 +269,78 @@ function RecentSummary({summary}: { summary?: PlayerSummary | null }) {
 }
 
 
+function ComparePlayerColumn({ player, view, otherView, banner, t }: {
+    player: PlayerSearchRender;
+    view: ReturnType<typeof mapRender>;
+    otherView: ReturnType<typeof mapRender>;
+    banner: string;
+    t: (key: string, params?: any) => string;
+}) {
+    const data = player.data;
+    return (
+        <div className="space-y-4">
+            <header className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900">
+                <div className="flex min-h-36 items-center bg-cover bg-center" style={{backgroundImage: `url(${banner})`}}>
+                    <img className="h-36 w-44 object-cover object-top" src={player.profileImageUrl} alt={`${player.nickname} profile`}/>
+                    <div className="min-w-0 px-4 text-white">
+                        <div className="inline-flex h-6 items-center rounded-full border-2 border-white px-3 text-xs font-bold">Lv.{player.level}</div>
+                        <h2 className="mt-2 truncate text-xl font-black">{player.nickname}</h2>
+                    </div>
+                </div>
+            </header>
+
+            {data.rp && data.rpName && (
+                <div className="flex items-center justify-center gap-3 rounded-lg border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
+                    {data.tierImageUrl && (
+                        <img src={data.tierImageUrl} alt={data.rpName} className="h-12 w-12 object-contain"/>
+                    )}
+                    <div className="text-center">
+                        <div className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">{data.rpName}</div>
+                        <div className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{data.rp} RP</div>
+                    </div>
+                </div>
+            )}
+
+            <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+                <h3 className="mb-3 text-sm font-bold text-neutral-900 dark:text-neutral-100">{t('search.basicStats')}</h3>
+                <div className="space-y-2">
+                    {view.summaryRows.map(([label, value], i) => {
+                        const otherVal = otherView.summaryRows[i]?.[1];
+                        const numMe = parseFloat(value.replace(/[,\s]/g, ''));
+                        const numOther = parseFloat(otherVal?.replace(/[,\s]/g, '') || '');
+                        const isHigher = !isNaN(numMe) && !isNaN(numOther) && numMe > numOther;
+
+                        return (
+                            <div key={i} className="flex justify-between items-center">
+                                <span className="text-sm text-neutral-500 dark:text-neutral-400">{label}</span>
+                                <span className={`text-sm font-semibold ${isHigher ? "text-green-600 dark:text-green-400" : "text-neutral-900 dark:text-neutral-100"}`}>
+                                    {value}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </section>
+
+            <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+                <h3 className="mb-3 text-sm font-bold text-neutral-900 dark:text-neutral-100">{t('search.commonCharacters')}</h3>
+                <div className="space-y-2">
+                    {view.characterRows.slice(0, 5).map((row, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                            <img src={row.image} alt={row.name} className="h-8 w-8 rounded-full"/>
+                            <div className="min-w-0 flex-1">
+                                <div className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">{row.name}</div>
+                                <div className="text-xs text-neutral-500 dark:text-neutral-400">{row.plays}</div>
+                            </div>
+                            <div className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">{row.winRate}</div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+        </div>
+    );
+}
+
 function mapRender(render: PlayerSearchRender, t: (key: string, params?: any) => string) {
     const summaryRows: [string, string][] = [
         [t('search.statsGames'), render.data.play.toString()],
@@ -468,9 +540,7 @@ export default function Search() {
     let bannerId = Math.floor((seasonId - 1) / 2) * 2 - 27
     const banner = `https://cdn.dak.gg/er/images/bg/bg-landing-search-v${bannerId}.jpg`
     return (
-        <div
-            className="h-full overflow-auto bg-neutral-100 p-4 text-neutral-700 dark:bg-neutral-950 dark:text-neutral-300">
-            <div className="mx-auto max-w-312.5">
+        <PageShell>
                 <div className={`transition-all duration-500 ease-out ${render ? "translate-y-0" : "translate-y-[34vh]"}`}>
                     {!render && (
                         <div className="mb-4 text-center select-none">
@@ -606,129 +676,12 @@ export default function Search() {
                 {/* 比较模式：双栏显示 */}
                 {compareMode && render && view && compareRender && compareView ? (
                     <div className="grid gap-4 lg:grid-cols-2">
-                        {/* 左侧：玩家1 */}
-                        <div className="space-y-4">
-                            <header className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900">
-                                <div className="flex min-h-36 items-center bg-cover bg-center" style={{backgroundImage: `url(${banner})`}}>
-                                    <img className="h-36 w-44 object-cover object-top" src={render.profileImageUrl} alt={`${render.nickname} profile`}/>
-                                    <div className="min-w-0 px-4 text-white">
-                                        <div className="inline-flex h-6 items-center rounded-full border-2 border-white px-3 text-xs font-bold">Lv.{render.level}</div>
-                                        <h2 className="mt-2 truncate text-xl font-black">{render.nickname}</h2>
-                                    </div>
-                                </div>
-                            </header>
-
-                            {render.data.rp && render.data.rpName && (
-                                <div className="flex items-center justify-center gap-3 rounded-lg border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
-                                    {render.data.tierImageUrl && (
-                                        <img src={render.data.tierImageUrl} alt={render.data.rpName} className="h-12 w-12 object-contain"/>
-                                    )}
-                                    <div className="text-center">
-                                        <div className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">{render.data.rpName}</div>
-                                        <div className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{render.data.rp} RP</div>
-                                    </div>
-                                </div>
-                            )}
-
-                            <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-                                <h3 className="mb-3 text-sm font-bold text-neutral-900 dark:text-neutral-100">{t('search.basicStats')}</h3>
-                                <div className="space-y-2">
-                                    {view.summaryRows.map(([label, value1], i) => {
-                                        const value2 = compareView.summaryRows[i][1];
-                                        const num1 = parseFloat(value1.replace(/[,\s]/g, ''));
-                                        const num2 = parseFloat(value2.replace(/[,\s]/g, ''));
-                                        const isHigher = !isNaN(num1) && !isNaN(num2) && num1 > num2;
-
-                                        return (
-                                            <div key={i} className="flex justify-between items-center">
-                                                <span className="text-sm text-neutral-500 dark:text-neutral-400">{label}</span>
-                                                <span className={`text-sm font-semibold ${isHigher ? "text-green-600 dark:text-green-400" : "text-neutral-900 dark:text-neutral-100"}`}>
-                                                    {value1}
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </section>
-
-                            <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-                                <h3 className="mb-3 text-sm font-bold text-neutral-900 dark:text-neutral-100">{t('search.commonCharacters')}</h3>
-                                <div className="space-y-2">
-                                    {view.characterRows.slice(0, 5).map((row, i) => (
-                                        <div key={i} className="flex items-center gap-2">
-                                            <img src={row.image} alt={row.name} className="h-8 w-8 rounded-full"/>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">{row.name}</div>
-                                                <div className="text-xs text-neutral-500 dark:text-neutral-400">{row.plays}</div>
-                                            </div>
-                                            <div className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">{row.winRate}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
-                        </div>
-
-                        {/* 右侧：玩家2 */}
-                        <div className="space-y-4">
-                            <header className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900">
-                                <div className="flex min-h-36 items-center bg-cover bg-center" style={{backgroundImage: `url(${banner})`}}>
-                                    <img className="h-36 w-44 object-cover object-top" src={compareRender.profileImageUrl} alt={`${compareRender.nickname} profile`}/>
-                                    <div className="min-w-0 px-4 text-white">
-                                        <div className="inline-flex h-6 items-center rounded-full border-2 border-white px-3 text-xs font-bold">Lv.{compareRender.level}</div>
-                                        <h2 className="mt-2 truncate text-xl font-black">{compareRender.nickname}</h2>
-                                    </div>
-                                </div>
-                            </header>
-
-                            {compareRender.data.rp && compareRender.data.rpName && (
-                                <div className="flex items-center justify-center gap-3 rounded-lg border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
-                                    {compareRender.data.tierImageUrl && (
-                                        <img src={compareRender.data.tierImageUrl} alt={compareRender.data.rpName} className="h-12 w-12 object-contain"/>
-                                    )}
-                                    <div className="text-center">
-                                        <div className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">{compareRender.data.rpName}</div>
-                                        <div className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{compareRender.data.rp} RP</div>
-                                    </div>
-                                </div>
-                            )}
-
-                            <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-                                <h3 className="mb-3 text-sm font-bold text-neutral-900 dark:text-neutral-100">{t('search.basicStats')}</h3>
-                                <div className="space-y-2">
-                                    {compareView.summaryRows.map(([label, value2], i) => {
-                                        const value1 = view.summaryRows[i][1];
-                                        const num1 = parseFloat(value1.replace(/[,\s]/g, ''));
-                                        const num2 = parseFloat(value2.replace(/[,\s]/g, ''));
-                                        const isHigher = !isNaN(num1) && !isNaN(num2) && num2 > num1;
-
-                                        return (
-                                            <div key={i} className="flex justify-between items-center">
-                                                <span className="text-sm text-neutral-500 dark:text-neutral-400">{label}</span>
-                                                <span className={`text-sm font-semibold ${isHigher ? "text-green-600 dark:text-green-400" : "text-neutral-900 dark:text-neutral-100"}`}>
-                                                    {value2}
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </section>
-
-                            <section className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-                                <h3 className="mb-3 text-sm font-bold text-neutral-900 dark:text-neutral-100">{t('search.commonCharacters')}</h3>
-                                <div className="space-y-2">
-                                    {compareView.characterRows.slice(0, 5).map((row, i) => (
-                                        <div key={i} className="flex items-center gap-2">
-                                            <img src={row.image} alt={row.name} className="h-8 w-8 rounded-full"/>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">{row.name}</div>
-                                                <div className="text-xs text-neutral-500 dark:text-neutral-400">{row.plays}</div>
-                                            </div>
-                                            <div className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">{row.winRate}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
-                        </div>
+                        <ComparePlayerColumn
+                            player={render} view={view} otherView={compareView} banner={banner} t={t}
+                        />
+                        <ComparePlayerColumn
+                            player={compareRender} view={compareView} otherView={view} banner={banner} t={t}
+                        />
                     </div>
                 ) : (
                     /* 正常模式：单栏显示 */
@@ -805,8 +758,6 @@ export default function Search() {
                         </div>
                     </>
                 ))}
-            </div>
-
-        </div>
+        </PageShell>
     );
 }

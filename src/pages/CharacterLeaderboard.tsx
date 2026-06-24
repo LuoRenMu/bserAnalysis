@@ -19,7 +19,7 @@ import {
   searchQueryAtom,
 } from "../store";
 import type { CharacterLeaderboardRow } from "../types/leaderboard";
-import { ErrorBanner, RankBadge, RefreshIcon, Segmented } from "../components/ui";
+import { ErrorBanner, PageShell, RankBadge, RefreshIcon, Segmented } from "../components/ui";
 
 const TEAM_MODE_OPTIONS = [
   { label: "排位", value: "SQUAD" },
@@ -181,8 +181,7 @@ export default function CharacterLeaderboard() {
   };
 
   return (
-    <div className="h-full overflow-auto bg-neutral-100 p-4 text-neutral-700 dark:bg-neutral-950 dark:text-neutral-300">
-      <div className="mx-auto max-w-312.5">
+    <PageShell>
         <header className="mb-4 flex items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-black text-neutral-950 dark:text-neutral-50">英雄排行榜</h1>
@@ -315,7 +314,6 @@ export default function CharacterLeaderboard() {
         <div className="mt-4 h-6 text-center text-sm font-semibold text-neutral-500 dark:text-neutral-400">
           {loading && characterId ? "加载中..." : ""}
         </div>
-      </div>
-    </div>
+    </PageShell>
   );
 }

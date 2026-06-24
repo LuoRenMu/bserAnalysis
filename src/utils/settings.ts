@@ -23,7 +23,7 @@ export const DEFAULT_DLL_PATH =
 const STORAGE_KEY = "bser_analysis_settings_v1";
 const STORE_FILE = "settings.json";
 
-export const defaultSettings: AppSettings = {
+const defaultSettings: AppSettings = {
   playerAliases: [],
   characterAliases: [],
   dllPath: DEFAULT_DLL_PATH,
@@ -192,10 +192,6 @@ export function resolveCharacterName(settings: AppSettings | null | undefined, n
 
 export function resolvePlayerSearchName(settings: AppSettings | null | undefined, name: string) {
   return resolveAliasSource(name, settings?.playerAliases);
-}
-
-export function resolveCharacterSearchName(settings: AppSettings | null | undefined, name: string) {
-  return resolveAliasSource(name, settings?.characterAliases);
 }
 
 export function matchesAliasQuery(name: string, aliases: AliasEntry[] | undefined, query: string) {

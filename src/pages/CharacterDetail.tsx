@@ -20,7 +20,7 @@ import {
     TIER_LABELS,
 } from "../utils/modes";
 import {formatUpdated, pct, tierColor} from "../utils/format";
-import {ErrorBanner} from "../components/ui";
+import {ErrorBanner, PageShell} from "../components/ui";
 
 const INITIAL_ITEM_BUILD_COUNT = 5;
 
@@ -515,9 +515,7 @@ export default function CharacterDetail() {
     const weapon = analysis?.weapons[weaponIndex] ?? analysis?.weapons[0] ?? null;
 
     return (
-        <div
-            className="h-full overflow-auto bg-neutral-100 p-4 text-neutral-700 dark:bg-neutral-950 dark:text-neutral-300">
-            <div className="mx-auto max-w-312">
+        <PageShell>
                 <button
                     type="button"
                     onClick={() => navigate(-1)}
@@ -716,7 +714,6 @@ export default function CharacterDetail() {
                         ) : null}
                     </div>
                 ) : null}
-            </div>
-        </div>
+        </PageShell>
     );
 }

@@ -2,6 +2,26 @@
  * 共享 UI 组件：从 Search / Leaderboard / Characters 等 page 抽取的复用图标与控件。
  */
 
+/**
+ * 共享 UI 组件：从 Search / Leaderboard / Characters 等 page 抽取的复用图标与控件。
+ */
+
+import React from "react";
+
+/**
+ * 页面外层容器，统一滚动 + 背景 + 最大宽度。
+ * Search / Leaderboard / CharacterLeaderboard / CharacterStats / CharacterDetail 共用。
+ */
+export function PageShell({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="h-full overflow-auto bg-neutral-100 p-4 text-neutral-700 dark:bg-neutral-950 dark:text-neutral-300">
+            <div className="mx-auto max-w-312.5">
+                {children}
+            </div>
+        </div>
+    );
+}
+
 /** 搜索放大镜图标（16×16 SVG）。 */
 export function SearchIcon() {
     return (
@@ -24,7 +44,7 @@ export function SearchIcon() {
 /**
  * 刷新图标（16×16 SVG），loading 时配合 `animate-spin` 使用。
  *
- * @param props.className - 附加的 CSS class，默认 `"h-4 w-4"`
+ * @param className - 附加的 CSS class，默认 `"h-4 w-4"`
  */
 export function RefreshIcon({className = "h-4 w-4"}: { className?: string }) {
     return (
@@ -47,10 +67,10 @@ export function RefreshIcon({className = "h-4 w-4"}: { className?: string }) {
 /**
  * 分段切换按钮组，常用于模式/排序选择。
  *
- * @param props.options   - 选项列表 `{ label, value }`
- * @param props.value     - 当前选中值
- * @param props.onChange  - 选中回调
- * @param props.disabled  - 是否禁用所有按钮
+ * @param options   - 选项列表 `{ label, value }`
+ * @param value     - 当前选中值
+ * @param onChange  - 选中回调
+ * @param disabled  - 是否禁用所有按钮
  */
 export function Segmented({
     options,
@@ -93,8 +113,8 @@ export function Segmented({
 /**
  * 排名徽章，顶部三名高亮金色。
  *
- * @param props.rank  - 排名（1-99，99 显示逃跑）
- * @param props.delta - 可选，排名变化量（正涨负跌）
+ * @param rank  - 排名（1-99，99 显示逃跑）
+ * @param delta - 可选，排名变化量（正涨负跌）
  */
 export function RankBadge({rank, delta}: { rank: number; delta?: number }) {
     const top = rank <= 3;
@@ -117,7 +137,7 @@ export function RankBadge({rank, delta}: { rank: number; delta?: number }) {
 /**
  * 统一错误提示横幅，`message` 为 falsy 时不渲染。
  *
- * @param props.message - 错误消息文本，null / undefined / "" 时返回 null
+ * @param message - 错误消息文本，null / undefined / "" 时返回 null
  */
 export function ErrorBanner({message}: { message: string | null | undefined }) {
     if (!message) return null;
@@ -132,15 +152,15 @@ export function ErrorBanner({message}: { message: string | null | undefined }) {
 /**
  * 通用分页导航，替换 Search / Leaderboard 各自重复的分页 UI。
  *
- * @param props.page         - 当前页码（1-based）
- * @param props.visiblePages - 可见页码数组，由 `calculateVisiblePages()` 生成
- * @param props.loading      - 是否加载中（禁用交互）
- * @param props.hasNext      - 是否有下一页
- * @param props.nextPage     - 下一页页码，默认 `page + 1`
- * @param props.prevLabel    - 上一页按钮文案，默认 `"Prev"`
- * @param props.nextLabel    - 下一页按钮文案，默认 `"Next"`
- * @param props.onPageChange - 页码切换回调
- * @param props.windowSize   - 当前页前后裁剪的按钮数量，不传显示全部
+ * @param page         - 当前页码（1-based）
+ * @param visiblePages - 可见页码数组，由 `calculateVisiblePages()` 生成
+ * @param loading      - 是否加载中（禁用交互）
+ * @param hasNext      - 是否有下一页
+ * @param nextPage     - 下一页页码，默认 `page + 1`
+ * @param prevLabel    - 上一页按钮文案，默认 `"Prev"`
+ * @param nextLabel    - 下一页按钮文案，默认 `"Next"`
+ * @param onPageChange - 页码切换回调
+ * @param windowSize   - 当前页前后裁剪的按钮数量，不传显示全部
  */
 export function PaginationNav({
     page,

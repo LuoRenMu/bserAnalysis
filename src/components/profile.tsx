@@ -3,7 +3,7 @@ import type { CharacterUseStats, PlayerSummary } from "../types/search";
 import { resolveCharacterName, resolvePlayerName, type AppSettings } from "../utils/settings";
 
 /** Per-player frequently-used-character stats, fetched asynchronously. */
-export interface PlayerStats {
+interface PlayerStats {
   loading: boolean;
   error?: string;
   level?: number;
@@ -19,7 +19,7 @@ export interface PlayerStats {
 
 export type PlayerStatsByName = Readonly<Record<string, PlayerStats>>;
 /** Character id → brief (name/image), used to resolve each player's picked character. */
-export type CharactersById = Readonly<Record<number, CharacterBrief>>;
+type CharactersById = Readonly<Record<number, CharacterBrief>>;
 
 const MAX_CHARACTERS = 4;
 
@@ -65,7 +65,7 @@ function CharacterRow({
   );
 }
 
-export function PlayerCard({
+function PlayerCard({
   nickname,
   stats,
   selectedCharacter,
@@ -158,7 +158,7 @@ function visiblePlayers(snapshot: GameSnapshot): PlayerEntry[] {
     .sort((left, right) => left.team_id - right.team_id || left.user_id - right.user_id);
 }
 
-export interface ProfileViewProps {
+interface ProfileViewProps {
     snapshot: GameSnapshot;
     statsByName?: PlayerStatsByName;
     charactersById?: CharactersById;

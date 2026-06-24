@@ -1,12 +1,6 @@
 import type { CharacterBrief } from "../types/bser";
 
-/**
- * Finds a character by name.
- * @param characters - Array of character briefs
- * @param name - Character name to search for
- * @returns The matching character or undefined
- */
-export function findCharacterByName(
+function findCharacterByName(
   characters: CharacterBrief[],
   name: string
 ): CharacterBrief | undefined {
@@ -33,13 +27,4 @@ export function findCharacterIdByName(
  */
 export function getCharacterDetailPath(characterId: number): string {
   return `/characters/${characterId}`;
-}
-
-/**
- * Generates a character leaderboard page path.
- * @param characterId - The character ID
- * @returns The route path with query parameters
- */
-export function getCharacterLeaderboardPath(characterId: number): string {
-  return `/character-leaderboard?id=${characterId}`;
 }

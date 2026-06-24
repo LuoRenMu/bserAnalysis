@@ -14,7 +14,7 @@ import {
 import type { CharacterStatsItem } from "../types/characterStats";
 import { DT_OPTIONS, MODE_OPTIONS, TIER_OPTIONS } from "../utils/modes";
 import { pct } from "../utils/format";
-import { ErrorBanner } from "../components/ui";
+import { ErrorBanner, PageShell } from "../components/ui";
 
 function TierBadge({ tier }: { tier: string }) {
   const validTier = ["S", "A", "B", "C", "D"].includes(tier) ? tier : null;
@@ -165,8 +165,7 @@ export default function CharacterStats() {
   const hasPatch = !!patch;
 
   return (
-    <div className="h-full overflow-auto bg-neutral-100 p-4 text-neutral-700 dark:bg-neutral-950 dark:text-neutral-300">
-      <div className="mx-auto max-w-312.5">
+    <PageShell>
         <header className="mb-4">
           <h1 className="text-2xl font-black text-neutral-950 dark:text-neutral-50">
             角色统计排行
@@ -303,7 +302,6 @@ export default function CharacterStats() {
         <div className="mt-4 h-6 text-center text-sm font-semibold text-neutral-500 dark:text-neutral-400">
           {loading ? "加载中..." : ""}
         </div>
-      </div>
-    </div>
+    </PageShell>
   );
 }

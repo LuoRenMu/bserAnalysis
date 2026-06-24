@@ -24,7 +24,7 @@ function toMap<T extends { id: number }>(list: T[]): Map<number, T> {
 // 参考数据后端按周缓存，整个会话只拉一次。
 let cache: Promise<GameData> | null = null;
 
-export function loadGameData(): Promise<GameData> {
+function loadGameData(): Promise<GameData> {
     if (!cache) {
         cache = invoke<GameReference>("fetch_game_reference")
             .then((ref) => ({

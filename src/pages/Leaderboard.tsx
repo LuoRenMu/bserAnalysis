@@ -16,7 +16,7 @@ import {
 } from "../store";
 import type { LeaderboardCharacter, LeaderboardRow } from "../types/leaderboard";
 import { calculateVisiblePages } from "../utils/pagination";
-import { ErrorBanner, PaginationNav, RankBadge, RefreshIcon, Segmented } from "../components/ui";
+import { ErrorBanner, PageShell, PaginationNav, RankBadge, RefreshIcon, Segmented } from "../components/ui";
 
 const SERVER_OPTIONS = [
   { label: "亚服", value: "seoul" },
@@ -187,8 +187,7 @@ export default function Leaderboard() {
   };
 
   return (
-    <div className="h-full overflow-auto bg-neutral-100 p-4 text-neutral-700 dark:bg-neutral-950 dark:text-neutral-300">
-      <div className="mx-auto max-w-312.5">
+    <PageShell>
         <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-2xl font-black text-neutral-950 dark:text-neutral-50">排行榜</h1>
@@ -271,11 +270,11 @@ export default function Leaderboard() {
                 <LeaderboardTableRow key={row.userNum} row={row} delta={rankDeltas.get(row.userNum)} onSelect={handlePlayerSelect} />
             ))}
           </div>
-        </section>) :(
+        </section>) : loading ? ( <div className="rounded-lg border border-neutral-200 bg-white px-3 py-16 text-center text-sm font-semibold text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">加载中...</div>) :(
             <div className="rounded-lg border border-neutral-200 bg-white px-3 py-16 text-center text-sm font-semibold text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
               没有数据
             </div>
-        )}
+          )}
 
         {visiblePages.length > 0 && (
           <PaginationNav
@@ -287,11 +286,6 @@ export default function Leaderboard() {
             onPageChange={handlePageChange}
           />
         )}
-
-        <div className="mt-4 h-6 text-center text-sm font-semibold text-neutral-500 dark:text-neutral-400">
-          {loading && result ? "加载中..." : ""}
-        </div>
-      </div>
-    </div>
+    </PageShell>
   );
 }

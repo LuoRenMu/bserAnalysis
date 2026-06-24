@@ -59,23 +59,3 @@ export function createCharacterNavigationHandler(
     navigateToCharacterByName(navigate, characters, characterName);
   };
 }
-
-/**
- * Type guard to check if characters and navigate are available.
- * Useful for conditional rendering before navigation attempts.
- *
- * @param characters - Character briefs array or undefined
- * @param navigate - Navigate function or undefined
- * @returns true if both parameters are available and ready for navigation
- *
- * @example
- * if (canNavigateToCharacter(characters, navigate)) {
- *   // Safe to navigate
- * }
- */
-export function canNavigateToCharacter(
-  characters: CharacterBrief[] | undefined,
-  navigate: NavigateFunction | undefined
-): navigate is NavigateFunction {
-  return !!(characters?.length && navigate);
-}
