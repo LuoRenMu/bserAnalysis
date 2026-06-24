@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from "react";
 import {invoke} from "@tauri-apps/api/core";
 import {useAtom, useAtomValue} from "jotai";
 import {useTranslation} from "react-i18next";
-import {normalizeName, profile} from "../components/profile";
+import {normalizeName, ProfileView} from "../components/profile";
 import type {PlayerStatsByName} from "../components/profile";
 import {CharacterBrief} from "../types/bser";
 import type {CharacterUseStats, PlayerSummary} from "../types/search";
@@ -115,7 +115,7 @@ export default function Overlay() {
         <div className="h-full">
             <div className="h-full">
                 {!injected ? ( <div className="mt-52 text-center text-5xl text-gray-500">{t('overlay.waitingForGame')}</div>) : snapshot ? (
-                    profile(snapshot, statsByName, charactersById, settings)
+                    <ProfileView snapshot={snapshot} statsByName={statsByName} charactersById={charactersById} settings={settings} />
                 ) : (
                     <div className="mt-52 text-center text-5xl text-gray-500">等待进入大厅获取数据...</div>
                 )}

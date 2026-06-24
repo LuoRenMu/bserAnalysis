@@ -158,50 +158,53 @@ function visiblePlayers(snapshot: GameSnapshot): PlayerEntry[] {
     .sort((left, right) => left.team_id - right.team_id || left.user_id - right.user_id);
 }
 
-export function profile(
-  snapshot: GameSnapshot,
-  statsByName: PlayerStatsByName = {},
-  charactersById: CharactersById = {},
-  settings?: AppSettings | null,
-) {
-  const players = visiblePlayers(snapshot);
-  return (
-    <div className="h-full overflow-auto bg-neutral-100 p-4 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="truncate text-sm font-bold">{snapshot.nickname || "Overlay"}</div>
-          <div className="text-xs text-neutral-500 dark:text-neutral-400">
-            {players.length} players / mode {snapshot.matching_mode} / team {snapshot.matching_team_mode}
-          </div>
-        </div>
-        <div className="shrink-0 rounded border border-neutral-200 bg-white px-2 py-1 text-xs font-semibold text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
-          {snapshot.is_battle_started ? "Battle" : snapshot.is_character_select_open ? "Pick" : "Lobby"}
-        </div>
-      </div>
+export interface ProfileViewProps {
+    snapshot: GameSnapshot;
+    statsByName?: PlayerStatsByName;
+    charactersById?: CharactersById;
+    settings?: AppSettings | null;
+}
 
-      {players.length === 0 ? (
-        <div className="rounded-lg border border-neutral-200 bg-white p-4 text-center text-sm text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900/90 dark:text-neutral-400">
-          Waiting for player data...
-        </div>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {players.map((player) => {
-            const nickname = player.name.trim();
-            const stats = statsByName[normalizeName(nickname)] ?? { loading: true };
-            const selectedCharacter = charactersById[player.character_id];
-
-            return (
-              <div key={`${player.team_id}-${player.user_id}-${nickname}`} className="min-w-0">
-                <div className="mb-1 flex items-center justify-between px-1 text-[10px] font-semibold text-neutral-500 dark:text-neutral-400">
-                  <span>Team {player.team_id}</span>
-                  <span>#{player.rank > 0 ? player.rank : "-"}</span>
+/** 覆盖层仪表板：队伍分组 + 玩家卡片列表。 */
+export function ProfileView({ snapshot, statsByName = {}, charactersById = {}, settings }: ProfileViewProps) {
+    const players = visiblePlayers(snapshot);
+    return (
+        <div className="h-full overflow-auto bg-neutral-100 p-4 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
+            <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                    <div className="truncate text-sm font-bold">{snapshot.nickname || "Overlay"}</div>
+                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                        {players.length} players / mode {snapshot.matching_mode} / team {snapshot.matching_team_mode}
+                    </div>
                 </div>
-                <PlayerCard nickname={nickname} stats={stats} selectedCharacter={selectedCharacter} settings={settings} />
-              </div>
-            );
-          })}
+                <div className="shrink-0 rounded border border-neutral-200 bg-white px-2 py-1 text-xs font-semibold text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
+                    {snapshot.is_battle_started ? "Battle" : snapshot.is_character_select_open ? "Pick" : "Lobby"}
+                </div>
+            </div>
+
+            {players.length === 0 ? (
+                <div className="rounded-lg border border-neutral-200 bg-white p-4 text-center text-sm text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900/90 dark:text-neutral-400">
+                    Waiting for player data...
+                </div>
+            ) : (
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {players.map((player) => {
+                        const nickname = player.name.trim();
+                        const stats = statsByName[normalizeName(nickname)] ?? { loading: true };
+                        const selectedCharacter = charactersById[player.character_id];
+
+                        return (
+                            <div key={`${player.team_id}-${player.user_id}-${nickname}`} className="min-w-0">
+                                <div className="mb-1 flex items-center justify-between px-1 text-[10px] font-semibold text-neutral-500 dark:text-neutral-400">
+                                    <span>Team {player.team_id}</span>
+                                    <span>#{player.rank > 0 ? player.rank : "-"}</span>
+                                </div>
+                                <PlayerCard nickname={nickname} stats={stats} selectedCharacter={selectedCharacter} settings={settings} />
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 }

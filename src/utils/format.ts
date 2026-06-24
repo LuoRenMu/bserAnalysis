@@ -1,14 +1,4 @@
 /**
- * 格式化数值为千位分隔格式
- * @example formatNumber(1234567) => "1,234,567"
- */
-export function formatNumber(value: number | string): string {
-  const num = typeof value === "string" ? parseFloat(value) : value;
-  if (isNaN(num)) return String(value);
-  return num.toLocaleString("en-US");
-}
-
-/**
  * 格式化时间（秒）为 mm:ss 格式
  * @example formatTime(125) => "2:05"
  */
@@ -16,23 +6,6 @@ export function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}:${String(secs).padStart(2, "0")}`;
-}
-
-/**
- * 格式化时长为可读格式
- * @example formatDuration(3665) => "1h 1m 5s"
- */
-export function formatDuration(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-
-  const parts: string[] = [];
-  if (hours > 0) parts.push(`${hours}h`);
-  if (mins > 0) parts.push(`${mins}m`);
-  if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
-
-  return parts.join(" ");
 }
 
 /**

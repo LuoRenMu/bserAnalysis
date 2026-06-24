@@ -1,5 +1,8 @@
-/** 共享 UI 组件：从各 page 抽取的复用图标与控件。 */
+/**
+ * 共享 UI 组件：从 Search / Leaderboard / Characters 等 page 抽取的复用图标与控件。
+ */
 
+/** 搜索放大镜图标（16×16 SVG）。 */
 export function SearchIcon() {
     return (
         <svg
@@ -18,6 +21,11 @@ export function SearchIcon() {
     );
 }
 
+/**
+ * 刷新图标（16×16 SVG），loading 时配合 `animate-spin` 使用。
+ *
+ * @param props.className - 附加的 CSS class，默认 `"h-4 w-4"`
+ */
 export function RefreshIcon({className = "h-4 w-4"}: { className?: string }) {
     return (
         <svg
@@ -36,6 +44,14 @@ export function RefreshIcon({className = "h-4 w-4"}: { className?: string }) {
     );
 }
 
+/**
+ * 分段切换按钮组，常用于模式/排序选择。
+ *
+ * @param props.options   - 选项列表 `{ label, value }`
+ * @param props.value     - 当前选中值
+ * @param props.onChange  - 选中回调
+ * @param props.disabled  - 是否禁用所有按钮
+ */
 export function Segmented({
     options,
     value,
@@ -74,6 +90,12 @@ export function Segmented({
     );
 }
 
+/**
+ * 排名徽章，顶部三名高亮金色。
+ *
+ * @param props.rank  - 排名（1-99，99 显示逃跑）
+ * @param props.delta - 可选，排名变化量（正涨负跌）
+ */
 export function RankBadge({rank, delta}: { rank: number; delta?: number }) {
     const top = rank <= 3;
 
@@ -92,6 +114,11 @@ export function RankBadge({rank, delta}: { rank: number; delta?: number }) {
     );
 }
 
+/**
+ * 统一错误提示横幅，`message` 为 falsy 时不渲染。
+ *
+ * @param props.message - 错误消息文本，null / undefined / "" 时返回 null
+ */
 export function ErrorBanner({message}: { message: string | null | undefined }) {
     if (!message) return null;
     return (
@@ -102,6 +129,19 @@ export function ErrorBanner({message}: { message: string | null | undefined }) {
     );
 }
 
+/**
+ * 通用分页导航，替换 Search / Leaderboard 各自重复的分页 UI。
+ *
+ * @param props.page         - 当前页码（1-based）
+ * @param props.visiblePages - 可见页码数组，由 `calculateVisiblePages()` 生成
+ * @param props.loading      - 是否加载中（禁用交互）
+ * @param props.hasNext      - 是否有下一页
+ * @param props.nextPage     - 下一页页码，默认 `page + 1`
+ * @param props.prevLabel    - 上一页按钮文案，默认 `"Prev"`
+ * @param props.nextLabel    - 下一页按钮文案，默认 `"Next"`
+ * @param props.onPageChange - 页码切换回调
+ * @param props.windowSize   - 当前页前后裁剪的按钮数量，不传显示全部
+ */
 export function PaginationNav({
     page,
     visiblePages,
@@ -121,7 +161,6 @@ export function PaginationNav({
     prevLabel?: string;
     nextLabel?: string;
     onPageChange: (page: number) => void;
-    /** 当前页前后裁剪的按钮半径；不传则显示全部 visiblePages。 */
     windowSize?: number;
 }) {
     if (visiblePages.length === 0) return null;

@@ -1,3 +1,5 @@
+import type { RefKind } from "../utils/gameData";
+
 export interface PlayerSearchRender {
   mmrStats?: PlayerMmrStats | null;
   nickname: string;
@@ -178,4 +180,50 @@ export interface MasteryRender {
 export interface CreditSource {
   key: string;
   amount: number;
+}
+
+// --- Search 页面 UI 渲染类型（原在 Search.tsx 文件内定义） ---
+
+/** 技能图标展示用的数据 */
+export interface SkillIcon {
+  url: string;
+  kind: RefKind;
+  id: number;
+}
+
+/** StatsTable / RankSummary 的表格行 */
+export interface TableRow {
+  name: string;
+  plays: string;
+  image: string;
+  rp?: string;
+  avgRank: string;
+  avgDmg?: string;
+  winRate?: string;
+}
+
+/** 对局卡片渲染数据，由 mapRender 从 PlayerMatchData 组装 */
+export interface UiMatch {
+  raw: PlayerMatchData;
+  gameId: string;
+  version: string;
+  rank: string;
+  mode: string;
+  time: string;
+  date: string;
+  accent: string;
+  character: string;
+  characterImage: string;
+  level: number;
+  modeId: number;
+  skills: SkillIcon[];
+  kda: string;
+  damage: string;
+  rp: string;
+  rpDiff: number;
+  route: string;
+  boughtInfusion: string;
+  equipment: EquipRender[];
+  ranked: boolean;
+  kdaRatio: string;
 }
