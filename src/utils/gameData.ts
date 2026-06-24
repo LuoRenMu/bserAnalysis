@@ -1,61 +1,19 @@
-import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import type { GameReference, InfusionRef, RefEntry, SkillRef } from "../types/bser";
-import {injectAtom} from "../store";
-import {useAtom} from "jotai";
+import type { InfusionRef, RefEntry, SkillRef } from "../types/bser";
 
-/** id→详情 的查询表，供悬浮提示用。 */
+/** id → 详情 的查询表，供悬浮提示用。 */
 export interface GameData {
     items: Map<number, RefEntry>;
     tacticalSkills: Map<number, RefEntry>;
     traitSkills: Map<number, RefEntry>;
     weapons: Map<number, RefEntry>;
     skills: Map<number, SkillRef>;
-    /** 灌注 id（boughtInfusion 的 key）→ 名称/图标。 */
     infusions: Map<number, InfusionRef>;
 }
 
-function toMap<T extends { id: number }>(list: T[]): Map<number, T> {
+export function toMap<T extends { id: number }>(list: T[]): Map<number, T> {
     const map = new Map<number, T>();
     for (const entry of list) map.set(entry.id, entry);
     return map;
-}
-
-// 参考数据后端按周缓存，整个会话只拉一次。
-let cache: Promise<GameData> | null = null;
-
-function loadGameData(): Promise<GameData> {
-    if (!cache) {
-        cache = invoke<GameReference>("fetch_game_reference")
-            .then((ref) => ({
-                items: toMap(ref.items),
-                tacticalSkills: toMap(ref.tacticalSkills),
-                traitSkills: toMap(ref.traitSkills),
-                weapons: toMap(ref.weapons),
-                skills: toMap(ref.skills),
-                infusions: toMap(ref.infusions),
-            }))
-            .catch((error) => {
-                // 失败不缓存，下次重试。
-                cache = null;
-                throw error;
-            });
-    }
-    return cache;
-}
-
-export function useGameData(): GameData | null {
-    const [data, setData] = useState<GameData | null>(null);
-    const [injected, _setInjected] = useAtom(injectAtom);
-    useEffect(() => {
-        if (!injected ) return;
-        void loadGameData()
-            .then((d) => {
-                setData(d);
-            })
-            .catch((error) => console.error("fetch_game_reference failed:", error));
-    }, []);
-    return data;
 }
 
 /** 去掉 dak.gg tooltip 里的 <color=…> 等富文本标签。 */
@@ -96,3 +54,9 @@ export function lookupInfusion(
     if (!data) return null;
     return data.infusions.get(id) ?? null;
 }
+
+/**
+ * 使用 Jotai atom 获取游戏参考数据（全局唯一，无 inject 依赖）。
+ * 首次消费时自动触发加载；所有组件共享同一份缓存。
+ */
+export { gameDataAtom, fetchGameDataAtom } from "../store/gameDataStore";

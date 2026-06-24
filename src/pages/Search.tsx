@@ -18,7 +18,7 @@ import type {PlayerData, PlayerMmrStats, PlayerSearchRender, PlayerSummary, Tabl
 import {type MatchDetailState} from "../components/match/MatchScoreboard";
 import MatchCard from "../components/match/MatchCard";
 import type {MatchDetailRender} from "../types/match";
-import {useGameData} from "../utils/gameData";
+import { gameDataAtom } from "../store";
 import {navigateToCharacterByName} from "../utils/navigation";
 import {calculateVisiblePages} from "../utils/pagination";
 import {accentForRank} from "../utils/convert.ts";
@@ -234,9 +234,7 @@ function RecentSummary({summary}: { summary?: PlayerSummary | null }) {
             <h2 className="border-b border-neutral-200 px-4 py-3 text-lg font-semibold text-neutral-950 dark:border-neutral-800 dark:text-neutral-50">
                 {t('search.recentSummary')}
             </h2>
-            <div className="grid grid-cols-3 gap-3 px-4 py-4 text
-
-            -center">
+            <div className="grid grid-cols-3 gap-3 px-4 py-4 text-center">
                 {[
                     [t('search.recentWins', { count: summary.count }), summary.wins],
                     [t('search.recentAvgRank', { count: summary.count }), `#${summary.avgRank}`],
@@ -412,7 +410,7 @@ export default function Search() {
     const { t } = useTranslation();
     const [query, setQuery] = useAtom(searchQueryAtom);
     const navigate = useNavigate();
-    const gameData = useGameData();
+    const gameData = useAtomValue(gameDataAtom);
     const characters = useAtomValue(characterBriefAtom);
     const render = useAtomValue(searchResultAtom);
     const loading = useAtomValue(searchLoadingAtom);

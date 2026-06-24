@@ -542,6 +542,7 @@ pub struct InfusionRef {
     pub product_type: String,
     pub name: String,
     pub image_url: String,
+    pub tooltip: String,
 }
 
 /// 一次性返回 4 类参考数据（再加武器精通），供前端构建 id→详情 映射做悬浮提示。
@@ -612,13 +613,14 @@ pub async fn fetch_game_reference() -> Result<GameReference> {
             .infusions
             .iter()
             .map(|infusion| {
-                let (name, image_url) = match infusion.product_type.as_str() {
+                let (name, image_url,tooltip) = match infusion.product_type.as_str() {
                     "EquipItemSelector" => {
-                        ("装备选择器".to_string(), CDN_PLACEHOLDER_URL.to_string())
+                        ("装备选择器".to_string(), CDN_PLACEHOLDER_URL.to_string(),"上古时代的宝贝开始选择啦".to_string())
                     }
                     "EquipItemMythicSelector" => (
                         "神话装备选择器".to_string(),
                         CDN_PLACEHOLDER_URL.to_string(),
+                        "上古时代的宝贝开始选择啦".to_string()
                     ),
                     _ => resolve_infusion_product(infusion.product_id, &traits, &items, &tacticals),
                 };
@@ -627,6 +629,7 @@ pub async fn fetch_game_reference() -> Result<GameReference> {
                     product_type: infusion.product_type.clone(),
                     name,
                     image_url,
+                    tooltip,
                 }
             })
             .collect(),
@@ -775,6 +778,7 @@ pub struct PickRender {
     pub bg_url: String,
     pub pick_rate: f64,
     pub win_rate: f64,
+    pub tooltip: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1066,6 +1070,7 @@ fn build_weapon(
                         bg_url: item_bg_url(item.map(|i| item_grade_num(&i.grade)).unwrap_or(0)),
                         pick_rate: 0.0,
                         win_rate: 0.0,
+                        tooltip: item.map(|i| i.tooltip.clone()).unwrap_or_default(),
                     }
                 })
                 .collect();
@@ -1103,6 +1108,7 @@ fn build_weapon(
                 bg_url: String::new(),
                 pick_rate: rate(tactical.count, count),
                 win_rate: rate(tactical.win, tactical.count),
+                tooltip: skill.map(|s| s.tooltip.clone()).unwrap_or_default(),
             }
         })
         .collect();
@@ -1189,6 +1195,7 @@ fn trait_pick(
         bg_url: String::new(),
         pick_rate: rate(count, total),
         win_rate: rate(win, count),
+        tooltip: skill.map(|s| s.tooltip.clone()).unwrap_or_default()
     }
 }
 
@@ -1200,7 +1207,7 @@ fn infusion_pick(
     win: i64,
     refs: &AnalysisRefs,
 ) -> PickRender {
-    let (name, icon_url) =
+    let (name, icon_url,tooltip) =
         resolve_infusion_product(product_id, refs.traits, refs.items, refs.tacticals);
     PickRender {
         id: product_id,
@@ -1209,6 +1216,7 @@ fn infusion_pick(
         bg_url: String::new(),
         pick_rate: rate(count, total),
         win_rate: rate(win, count),
+        tooltip
     }
 }
 
@@ -1218,17 +1226,17 @@ fn resolve_infusion_product(
     traits: &DakGgTraitSkillsResponse,
     items: &DakGgItemsResponse,
     tacticals: &DakGgTacticalSkillResponse,
-) -> (String, String) {
+) -> (String, String,String) {
     if let Some(skill) = traits.get_trait_skill_by_id(product_id) {
-        return (skill.name.clone(), cdn_url(&skill.image_url));
+        return (skill.name.clone(), cdn_url(&skill.image_url),skill.tooltip.clone());
     }
     if let Some(item) = items.get_item_by_id(product_id) {
-        return (item.name.clone(), cdn_url(&item.image_url));
+        return (item.name.clone(), cdn_url(&item.image_url),item.tooltip.clone());
     }
     if let Some(skill) = tacticals.get_tactical_skill(product_id) {
-        return (skill.name.clone(), cdn_url(&skill.image_url));
+        return (skill.name.clone(), cdn_url(&skill.image_url),skill.tooltip.clone());
     }
-    (String::new(), CDN_PLACEHOLDER_URL.to_string())
+    (String::new(), CDN_PLACEHOLDER_URL.to_string(),"".to_string())
 }
 
 /// 物品品级字符串 → 序号（用于品级背景图）。

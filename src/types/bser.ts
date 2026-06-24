@@ -234,4 +234,5 @@ export interface InfusionRef {
   productType: string;
   name: string;
   imageUrl: string;
+  tooltip: string;
 }

@@ -55,6 +55,7 @@ function InfusionRow({ raw, data }: { raw: string; data: GameData | null }) {
         } catch {
             entries = [];
         }
+
         const traits = entries
             .filter((entry) => lookupInfusion(data, entry.id)?.productType === "Trait")
             .sort((a, b) => b.count - a.count || b.id - a.id)
@@ -67,8 +68,8 @@ function InfusionRow({ raw, data }: { raw: string; data: GameData | null }) {
             {slots.map((entry, index) => {
                 const ref = entry ? lookupInfusion(data, entry.id) : null;
                 return (
-                    <InfoTooltip key={entry ? entry.id : `empty-${index}`} title={ref?.name ?? ""}>
-                        <div className="relative h-6 w-6 overflow-hidden rounded bg-neutral-200 dark:bg-neutral-800">
+                    <InfoTooltip key={entry ? entry.id : `empty-${index}`} title={ref?.name ?? ""} body={ref?.tooltip ?? ""}>
+                        <div className="relative h-6 w-6 overflow-hidden rounded  dark:bg-neutral-800">
                             {ref?.imageUrl ? (
                                 <img src={ref.imageUrl} alt={ref.name} className="h-full w-full object-cover"/>
                             ) : null}
@@ -103,7 +104,6 @@ export default function MatchCard({
     navigate: NavigateFunction;
 }) {
     const { t } = useTranslation();
-
     return (
         <article style={{minWidth: "700px"}}
                  className="relative mt-5 rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">

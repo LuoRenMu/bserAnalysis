@@ -9,7 +9,8 @@ import type {
     WeaponBuildRender,
 } from "../types/bser";
 import InfoTooltip from "../components/InfoTooltip";
-import {lookupRef, stripTags, useGameData, type GameData, type RefKind} from "../utils/gameData";
+import {lookupRef, stripTags, type GameData, type RefKind} from "../utils/gameData";
+import {gameDataAtom} from "../store";
 import {searchPlayerAtom} from "../store";
 import {appSettingsAtom, resolvePlayerName} from "../utils/settings";
 import {
@@ -452,7 +453,7 @@ function WeaponBuild({build, data}: { build: WeaponBuildRender; data: GameData |
 export default function CharacterDetail() {
     const {id} = useParams();
     const navigate = useNavigate();
-    const gameData = useGameData();
+    const gameData = useAtomValue(gameDataAtom);
     const settings = useAtomValue(appSettingsAtom);
     const searchPlayer = useSetAtom(searchPlayerAtom);
 

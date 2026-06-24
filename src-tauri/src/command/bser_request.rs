@@ -37,7 +37,7 @@ pub async fn set_language(
     manager.set_language(&hl);
 
     // Update cache language and clear if changed
-    crate::request::cache::CACHE.update_language(&hl);
+    CACHE.update_language(&hl);
 
     Ok(())
 }

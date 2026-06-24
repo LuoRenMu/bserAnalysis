@@ -1,4 +1,13 @@
+import { useEffect, useState } from "react";
+import { getVersion } from "@tauri-apps/api/app";
+
 export default function AboutSection() {
+    const [version, setVersion] = useState("");
+
+    useEffect(() => {
+        getVersion().then(setVersion).catch(() => setVersion("unknown"));
+    }, []);
+
     return (
         <section
             className="overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
@@ -12,7 +21,7 @@ export default function AboutSection() {
             <div className="space-y-3 p-4 text-sm">
                 <div>
                     <span className="text-neutral-500 dark:text-neutral-400">版本：</span>
-                    <span className="font-mono">0.1.0</span>
+                    <span className="font-mono">{version || "..."}</span>
                 </div>
                 <div>
                     <span className="text-neutral-500 dark:text-neutral-400">仓库：</span>

@@ -21,5 +21,8 @@ export * from "./characterLeaderboardStore";
 // Character Stats store
 export * from "./characterStatsStore";
 
+// GameData store
+export * from "./gameDataStore";
+
 // Error store
 export * from "./errorStore";
