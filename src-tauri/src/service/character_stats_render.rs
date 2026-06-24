@@ -95,7 +95,10 @@ pub async fn fetch_character_stats(
 
         if let Some(character) = character {
             for weapon_stat in character_stat.weapon_stats {
-                let weapon = weapons_resp.masteries.iter().find(|w| w.id == weapon_stat.key);
+                let weapon = weapons_resp
+                    .masteries
+                    .iter()
+                    .find(|w| w.id == weapon_stat.key);
 
                 if let Some(weapon) = weapon {
                     let match_count = weapon_stat.count;
@@ -106,13 +109,10 @@ pub async fn fetch_character_stats(
                     let win_rate = (weapon_stat.win as f64 / match_count as f64) * 100.0;
                     let top3_rate = (weapon_stat.top3 as f64 / match_count as f64) * 100.0;
                     let avg_rp = weapon_stat.mmr_gain as f64 / match_count as f64;
-                    let avg_damage =
-                        weapon_stat.damage_to_player as f64 / match_count as f64;
-                    let avg_sight =
-                        weapon_stat.view_contribution as f64 / match_count as f64;
+                    let avg_damage = weapon_stat.damage_to_player as f64 / match_count as f64;
+                    let avg_sight = weapon_stat.view_contribution as f64 / match_count as f64;
                     let avg_team_kill = weapon_stat.team_kill as f64 / match_count as f64;
-                    let avg_player_kill =
-                        weapon_stat.player_kill as f64 / match_count as f64;
+                    let avg_player_kill = weapon_stat.player_kill as f64 / match_count as f64;
                     let pick_rate = if total_count > 0 {
                         (character_stat.count as f64 / total_count as f64) * 100.0
                     } else {

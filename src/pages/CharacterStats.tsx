@@ -12,32 +12,9 @@ import {
   fetchCharacterStatsAtom,
 } from "../store";
 import type { CharacterStatsItem } from "../types/characterStats";
-
-const MODE_OPTIONS = [
-  { label: "排位", value: "RANK", teamMode: "SQUAD" },
-  { label: "钴协议", value: "COBALT", teamMode: "COBALT" },
-];
-
-const TIER_OPTIONS = [
-  { label: "in1000", value: "in1000" },
-  { label: "钻石+", value: "diamond_plus" },
-  { label: "无暇+", value: "mithril_plus" },
-  { label: "星陨+", value: "meteorite_plus" },
-  { label: "修罗+", value: "platinum_plus" },
-  { label: "黄金", value: "gold" },
-  { label: "铁阎", value: "silver" },
-  { label: "黄铜", value: "bronze" },
-  { label: "黑铁", value: "iron" },
-];
-
-const DT_OPTIONS = [
-  { label: "最近3天", value: 3 },
-  { label: "最近7天", value: 7 },
-];
-
-function pct(value: number) {
-  return `${value.toFixed(1)}%`;
-}
+import { DT_OPTIONS, MODE_OPTIONS, TIER_OPTIONS } from "../utils/modes";
+import { pct } from "../utils/format";
+import { ErrorBanner } from "../components/ui";
 
 function TierBadge({ tier }: { tier: string }) {
   const validTier = ["S", "A", "B", "C", "D"].includes(tier) ? tier : null;
@@ -290,11 +267,7 @@ export default function CharacterStats() {
           )}
         </div>
 
-        {error && (
-          <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-            {error}
-          </div>
-        )}
+        <ErrorBanner message={error} />
 
         {result && (
           <section className="overflow-x-auto rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">

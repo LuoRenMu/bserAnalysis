@@ -79,16 +79,23 @@ pub async fn assemble_leaderboard(
             .into_iter()
             .find(|s| s.id == id)
             .ok_or_else(|| RequestError::NotFound(format!("Season {}", id)))?;
-        (found_season.key.clone(), found_season.name.clone(), found_season.id)
+        (
+            found_season.key.clone(),
+            found_season.name.clone(),
+            found_season.id,
+        )
     } else {
         // 获取当前赛季
         let current = EternalReturnDakGgApi::get_current_season().await?;
-        (current.season_type.clone(), current.name.clone(), current.id)
+        (
+            current.season_type.clone(),
+            current.name.clone(),
+            current.id,
+        )
     };
 
     let response =
-        EternalReturnDakGgApi::get_leaderboard(page, &season_type, server, team_mode)
-            .await?;
+        EternalReturnDakGgApi::get_leaderboard(page, &season_type, server, team_mode).await?;
     let characters = EternalReturnDakGgApi::get_characters().await?;
     let tiers = EternalReturnDakGgApi::get_tiers().await?;
 
@@ -287,8 +294,12 @@ pub async fn assemble_character_leaderboard(
         .ok_or_else(|| RequestError::NotFound(format!("character {character_id}")))?;
     let character_key = character.key.clone();
     let character_name = character.name.clone();
-    let character_image_url =
-        character_url(&characters, character_id, 0, DakGgCharacterImgType::CharProfile);
+    let character_image_url = character_url(
+        &characters,
+        character_id,
+        0,
+        DakGgCharacterImgType::CharProfile,
+    );
 
     // 钴协议固定使用 NORMAL 赛季；排序类型校验后回退到 MATCH_COUNT。
     let team_mode = team_mode.to_uppercase();

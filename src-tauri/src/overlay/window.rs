@@ -10,8 +10,8 @@ use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder}
 pub const OVERLAY_LABEL: &str = "game-overlay";
 
 /// Overlay 窗口相对屏幕的比例。
-const OVERLAY_WIDTH_RATIO: f64 = 0.25;
-const OVERLAY_HEIGHT_RATIO: f64 = 0.8;
+const OVERLAY_WIDTH_RATIO: f64 = 0.55;
+const OVERLAY_HEIGHT_RATIO: f64 = 0.70;
 
 /// 在应用启动时创建 overlay 窗口（隐藏）。重复调用是幂等的。
 pub fn create_overlay_window(app: &AppHandle) -> Result<WebviewWindow, String> {
@@ -21,22 +21,19 @@ pub fn create_overlay_window(app: &AppHandle) -> Result<WebviewWindow, String> {
 
     let (x, y, width, height) = centered_geometry(app);
 
-    let window = WebviewWindowBuilder::new(
-        app,
-        OVERLAY_LABEL,
-        WebviewUrl::App("game-overlay".into()),
-    )
-    .title("")
-    .inner_size(width, height)
-    .position(x, y)
-    .decorations(false)
-    .transparent(true)
-    .always_on_top(true)
-    .skip_taskbar(true)
-    .focused(false)
-    .visible(false)
-    .build()
-    .map_err(|e| format!("Failed to create overlay window: {}", e))?;
+    let window =
+        WebviewWindowBuilder::new(app, OVERLAY_LABEL, WebviewUrl::App("game-overlay".into()))
+            .title("")
+            .inner_size(width, height)
+            .position(x, y)
+            .decorations(false)
+            .transparent(true)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .focused(false)
+            .visible(false)
+            .build()
+            .map_err(|e| format!("Failed to create overlay window: {}", e))?;
 
     // 让窗口对鼠标事件透明，游戏可以正常接收点击。
     if let Err(e) = window.set_ignore_cursor_events(true) {

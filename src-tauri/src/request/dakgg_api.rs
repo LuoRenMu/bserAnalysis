@@ -4,7 +4,7 @@ use crate::request::cache::ttl;
 use crate::request::models::CharacterAnalysis;
 use crate::request::{
     error::{RequestError, Result},
-    helpers::encode_component,
+    helpers::{encode_component, QueryParams},
     http_client::{CachePolicy, Request, HTTP_CLIENT},
     manager::{ApiRequest, ResourceRequest},
     models::{
@@ -48,7 +48,8 @@ pub struct EternalReturnDakGgApi;
 impl EternalReturnDakGgApi {
     pub async fn get_tiers() -> Result<DakGgTiersResponse> {
         let url = format!("/v1/data/tiers?hl={}", get_hl());
-        let request = dakgg_request(url).cache_policy(CachePolicy::Conditional { ttl: ttl::STATIC });
+        let request =
+            dakgg_request(url).cache_policy(CachePolicy::Conditional { ttl: ttl::STATIC });
         HTTP_CLIENT.fetch(request).await
     }
 
@@ -152,7 +153,10 @@ impl EternalReturnDakGgApi {
 
         let mut last_response = None;
         for attempt in 1..=3 {
-            match HTTP_CLIENT.fetch::<DakGgSyncResponse>(request.clone()).await {
+            match HTTP_CLIENT
+                .fetch::<DakGgSyncResponse>(request.clone())
+                .await
+            {
                 Ok(body) => {
                     if body.is_not_found() {
                         return Err(RequestError::NicknameNotFound(nickname.to_string()));
@@ -207,7 +211,10 @@ impl EternalReturnDakGgApi {
         game_id: i64,
     ) -> Result<DakGgMatchDetailResponse> {
         let encoded = encode_component(nickname);
-        let url = format!("/v1/players/{encoded}/matches/{season_id}/{game_id}?hl={}", get_hl());
+        let url = format!(
+            "/v1/players/{encoded}/matches/{season_id}/{game_id}?hl={}",
+            get_hl()
+        );
         let request = dakgg_request(url).accept_error_status();
 
         let bytes = HTTP_CLIENT.fetch_bytes(request).await?;
@@ -302,7 +309,8 @@ impl EternalReturnDakGgApi {
         matching_mode: &str,
         tier: Option<&str>,
     ) -> Result<CharacterAnalysis> {
-        let mut url = format!(
+        let mut url =
+            format!(
             "https://dak.gg/er/characters/{}?hl={}&tab=introduction&teamMode={}&matchingMode={}",
             character_key, get_hl(), team_mode, matching_mode
         );
@@ -314,8 +322,7 @@ impl EternalReturnDakGgApi {
         let request = Request::new("", url).header("User-Agent", DAKGG_USER_AGENT);
         let bytes = HTTP_CLIENT.fetch_bytes(request).await?;
 
-        let html = String::from_utf8(bytes)
-            .map_err(|_| RequestError::UnexpectedDakGgResponse)?;
+        let html = String::from_utf8(bytes).map_err(|_| RequestError::UnexpectedDakGgResponse)?;
         let json_data = CHARACTER_ANALYSIS_REGEX
             .captures(&html)
             .and_then(|cap| cap.get(1))
@@ -332,16 +339,32 @@ fn game_url(
     team_mode: DakGgTeamMode,
     page: i32,
 ) -> String {
-    let encoded = encode_component(nickname);
-    let season = season_type
-        .map(|season| format!("season={}", encode_component(season)))
-        .unwrap_or_default();
-
-    format!(
-        "/v1/players/{encoded}/matches?{season}&matchingMode={}&teamMode={}&page={page}",
-        matching_mode.dak_gg_mode(),
-        team_mode.value()
+    game_url_with_language(
+        nickname,
+        season_type,
+        matching_mode,
+        team_mode,
+        page,
+        &get_hl(),
     )
+}
+
+fn game_url_with_language(
+    nickname: &str,
+    season_type: Option<&str>,
+    matching_mode: MatchingMode,
+    team_mode: DakGgTeamMode,
+    page: i32,
+    hl: &str,
+) -> String {
+    let encoded = encode_component(nickname);
+    QueryParams::new()
+        .push_optional("season", season_type)
+        .push("matchingMode", matching_mode.dak_gg_mode())
+        .push("teamMode", team_mode.value())
+        .push("page", page)
+        .push("hl", hl)
+        .build_path(format!("/v1/players/{encoded}/matches"))
 }
 
 fn resource_request(url: impl Into<String>, path: impl Into<PathBuf>) -> ResourceRequest {
@@ -406,14 +429,30 @@ mod tests {
     #[test]
     fn game_url_encodes_nickname_and_season_query_param() {
         assert_eq!(
-            game_url(
+            game_url_with_language(
                 "玩家 A",
                 Some("season type/1"),
                 MatchingMode::Rank,
                 DakGgTeamMode::Squad,
                 2,
+                "zh_CN",
             ),
-            "/v1/players/%E7%8E%A9%E5%AE%B6%20A/matches?season=season%20type%2F1&matchingMode=RANK&teamMode=SQUAD&page=2"
+            "/v1/players/%E7%8E%A9%E5%AE%B6%20A/matches?season=season%20type%2F1&matchingMode=RANK&teamMode=SQUAD&page=2&hl=zh_CN"
+        );
+    }
+
+    #[test]
+    fn game_url_omits_empty_season_without_leading_ampersand() {
+        assert_eq!(
+            game_url_with_language(
+                "player",
+                None,
+                MatchingMode::Rank,
+                DakGgTeamMode::Squad,
+                1,
+                "en",
+            ),
+            "/v1/players/player/matches?matchingMode=RANK&teamMode=SQUAD&page=1&hl=en"
         );
     }
 }

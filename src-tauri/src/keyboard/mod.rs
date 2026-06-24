@@ -172,7 +172,12 @@ fn try_complete_recording(key: Key, hub: &KeyboardHub) -> RecordingOutcome {
         return RecordingOutcome::None;
     }
     // 非修饰键：组合 = 当前按下的修饰键 + 这个键。
-    let mut combo: Vec<Key> = state.pressed.iter().filter(|k| is_modifier(**k)).copied().collect();
+    let mut combo: Vec<Key> = state
+        .pressed
+        .iter()
+        .filter(|k| is_modifier(**k))
+        .copied()
+        .collect();
     combo.push(key);
     state.recording = false;
     state.pressed.insert(key);
@@ -184,7 +189,11 @@ enum OverlayAction {
     Hide,
 }
 
-fn evaluate_overlay_side_effect(state: &mut KeyboardState, key: Key, is_press: bool) -> Option<OverlayAction> {
+fn evaluate_overlay_side_effect(
+    state: &mut KeyboardState,
+    key: Key,
+    is_press: bool,
+) -> Option<OverlayAction> {
     let combo = state.overlay_combo.as_ref()?;
     if is_press {
         if !state.overlay_visible && combo.iter().all(|k| state.pressed.contains(k)) {

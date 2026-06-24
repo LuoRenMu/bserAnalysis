@@ -12,65 +12,17 @@ import InfoTooltip from "../components/InfoTooltip";
 import {lookupRef, stripTags, useGameData, type GameData, type RefKind} from "../utils/gameData";
 import {searchPlayerAtom} from "../store";
 import {appSettingsAtom, resolvePlayerName} from "../utils/settings";
+import {
+    CHARACTER_MODES,
+    MATCHING_MODE_NAMES,
+    TEAM_MODE_NAMES,
+    TIERS,
+    TIER_LABELS,
+} from "../utils/modes";
+import {formatUpdated, pct, tierColor} from "../utils/format";
+import {ErrorBanner} from "../components/ui";
 
-const MATCHING_MODE_NAMES: Record<number, string> = {
-    2: "普通",
-    3: "排位",
-    6: "钴协议",
-};
-
-const TEAM_MODE_NAMES: Record<number, string> = {
-    1: "单人",
-    2: "双人",
-    3: "三人",
-    4: "钴协议",
-};
-
-const MODES = [
-    {key: "rank", label: "排位", matchingMode: "RANK", teamMode: "SQUAD", hasTier: true},
-    {key: "cobalt", label: "钴协议", matchingMode: "COBALT", teamMode: "COBALT", hasTier: false},
-] as const;
-
-const TIERS = [
-    {key: "in1000", label: "in1000"},
-    {key: "diamond_plus", label: "钻石+"},
-    {key: "mithril_plus", label: "无暇+"},
-    {key: "meteorite_plus", label: "星陨+"},
-    {key: "platinum_plus", label: "修罗+"},
-    {key: "gold", label: "黄金"},
-    {key: "silver", label: "铁阎"},
-    {key: "bronze", label: "黄铜"},
-    {key: "iron", label: "黑铁"},
-] as const;
-
-const TIER_LABELS: Record<string, string> = Object.fromEntries(TIERS.map((t) => [t.key, t.label]));
 const INITIAL_ITEM_BUILD_COUNT = 5;
-
-function pct(value: number) {
-    return `${value.toFixed(1)}%`;
-}
-
-function tierColor(tier: string) {
-    switch (tier) {
-        case "S":
-            return "#e0457b";
-        case "A":
-            return "#ca9372";
-        case "B":
-            return "#3b82f6";
-        case "C":
-            return "#10b981";
-        default:
-            return "#6b7280";
-    }
-}
-
-function formatUpdated(ms: number) {
-    if (!ms) return "";
-    const d = new Date(ms);
-    const p = (n: number) => n.toString().padStart(2, "0");
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
-}
 
 function TierBadge({tier, size = "md"}: { tier: string; size?: "md" | "lg" }) {
     const dim = size === "lg" ? "h-10 w-10" : "h-6 w-6";
@@ -526,7 +478,7 @@ export default function CharacterDetail() {
             return;
         }
 
-        const mode = MODES.find((m) => m.key === modeKey) ?? MODES[0];
+        const mode = CHARACTER_MODES.find((m) => m.key === modeKey) ?? CHARACTER_MODES[0];
         let cancelled = false;
         setLoading(true);
         setError(null);
@@ -558,7 +510,7 @@ export default function CharacterDetail() {
         };
     }, [id, modeKey, tier]);
 
-    const mode = MODES.find((m) => m.key === modeKey) ?? MODES[0];
+    const mode = CHARACTER_MODES.find((m) => m.key === modeKey) ?? CHARACTER_MODES[0];
     const analysis = detail?.analysis ?? null;
     const weapon = analysis?.weapons[weaponIndex] ?? analysis?.weapons[0] ?? null;
 
@@ -576,7 +528,7 @@ export default function CharacterDetail() {
 
                 <div className="mb-4 flex flex-wrap items-center gap-3">
                     <div className="inline-flex items-center gap-1 rounded-lg bg-neutral-200 p-1 dark:bg-neutral-900">
-                        {MODES.map((m) => (
+                        {CHARACTER_MODES.map((m) => (
                             <button
                                 key={m.key}
                                 type="button"
@@ -608,12 +560,7 @@ export default function CharacterDetail() {
                 </div>
 
                 {loading ? <div className="mt-32 text-center text-sm text-neutral-500">Loading...</div> : null}
-                {error ? (
-                    <div
-                        className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-                        {error}
-                    </div>
-                ) : null}
+                {error ? <ErrorBanner message={error}/> : null}
 
                 {detail && !loading ? (
                     <div className="space-y-4">

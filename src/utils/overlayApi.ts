@@ -1,6 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
+/** Setting → 预览覆盖层用的事件名（前端跨窗口协议）。 */
+export const OVERLAY_MOCK_EVENT = "overlay-mock-preview";
+
+/** Setting → 覆盖层背景透明度更新事件（payload: 0..1）。 */
+export const OVERLAY_OPACITY_EVENT = "overlay-opacity-updated";
+
 /**
  * Starts overlay data monitoring (backend polls game data and emits updates).
  */
@@ -131,6 +137,41 @@ export async function listenOverlayDataUpdated<T>(
   onData: (snapshot: T) => void,
 ): Promise<UnlistenFn> {
   return await listen<T>("overlay-data-updated", (event) => onData(event.payload));
+}
+
+/**
+ * Emits the mock-preview event to the overlay window (used by Settings 预览按钮).
+ */
+export async function emitOverlayMock(): Promise<void> {
+  await invoke("emit_overlay_mock");
+}
+
+/**
+ * GameOverlay 挂载时调用：尝试取走 mock 预览请求标记。
+ * 返回 true 表示 Settings 刚点过"预览"，前端应展示 mock 数据。
+ */
+export async function tryTakeOverlayMock(): Promise<boolean> {
+  return await invoke<boolean>("try_take_overlay_mock");
+}
+
+/** 监听预览覆盖层用的模拟事件。 */
+export async function listenOverlayMock(onMock: () => void): Promise<UnlistenFn> {
+  return await listen(OVERLAY_MOCK_EVENT, () => onMock());
+}
+
+/**
+ * Emits the background opacity update to the overlay window.
+ * @param opacity 0..1
+ */
+export async function emitOverlayOpacity(opacity: number): Promise<void> {
+  await invoke("emit_overlay_opacity", { opacity });
+}
+
+/** 监听覆盖层背景透明度更新事件。 */
+export async function listenOverlayOpacity(
+  onUpdate: (opacity: number) => void,
+): Promise<UnlistenFn> {
+  return await listen<number>(OVERLAY_OPACITY_EVENT, (event) => onUpdate(event.payload));
 }
 
 /**

@@ -8,7 +8,6 @@ export interface BoundPlayerSectionProps {
 
 export default function BoundPlayerSection({settings, setSettings}: BoundPlayerSectionProps) {
     const {t} = useTranslation();
-
     return (
         <section
             className="overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">

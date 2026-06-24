@@ -1,6 +1,6 @@
 import {useSetAtom} from "jotai";
 import {type AppSettings} from "../../utils/settings";
-import {registerOverlayShortcut, toggleOverlayWindow} from "../../utils/overlayApi";
+import {emitOverlayMock, emitOverlayOpacity, registerOverlayShortcut, toggleOverlayWindow} from "../../utils/overlayApi";
 import {addErrorNotificationAtom} from "../../store";
 
 export interface OverlaySectionProps {
@@ -55,17 +55,51 @@ export default function OverlaySection({settings, setSettings}: OverlaySectionPr
                 <button
                     type="button"
                     onClick={() => {
-                        toggleOverlayWindow().catch((error) => {
-                            console.error('Failed to toggle overlay:', error);
-                        });
+                        void toggleOverlayWindow()
+                            .then((visible) => {
+                                if (visible) emitOverlayMock().catch(() => {});
+                            })
+                            .catch((error) => {
+                                console.error('Failed to toggle overlay:', error);
+                            });
                     }}
                     className="h-10 rounded-lg border border-neutral-300 bg-white px-4 text-sm font-semibold text-neutral-900 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
                 >
-                    显示/隐藏覆盖层
+                    预览
                 </button>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400">
                     长按设置的快捷键也可在游戏中显示覆盖层，松开关闭
                 </p>
+
+                <div>
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                            背景透明度
+                        </label>
+                        <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                            {Math.round(settings.overlayBackgroundOpacity * 100)}%
+                        </span>
+                    </div>
+                    <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={settings.overlayBackgroundOpacity}
+                        onChange={(event) => {
+                            const opacity = Number(event.target.value);
+                            setSettings((current) => ({
+                                ...current,
+                                overlayBackgroundOpacity: opacity,
+                            }));
+                            emitOverlayOpacity(opacity).catch(() => {});
+                        }}
+                        className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-neutral-200 accent-blue-500 dark:bg-neutral-700"
+                    />
+                    <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                        拖动调整覆盖层背景透明度（0% 全透明 / 100% 全黑）
+                    </p>
+                </div>
             </div>
         </section>
     );

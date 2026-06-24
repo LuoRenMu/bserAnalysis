@@ -16,10 +16,10 @@
 use std::ffi::c_void;
 use std::path::Path;
 
+use crate::core::DATA_SIZE;
 use windows::core::PCSTR;
 use windows::Win32::Foundation::{FreeLibrary, HMODULE};
 use windows::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryA};
-use crate::core::DATA_SIZE;
 
 type ApiIntFn = unsafe extern "system" fn() -> i32;
 type ApiDataFn = unsafe extern "system" fn() -> *mut c_void;

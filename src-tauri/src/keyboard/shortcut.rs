@@ -30,8 +30,7 @@ pub fn parse_shortcut(input: &str) -> Result<Vec<Key>, ShortcutError> {
 
     let mut keys = Vec::with_capacity(parts.len());
     for part in parts {
-        let key = parse_key(part)
-            .ok_or_else(|| ShortcutError::UnsupportedKey(part.to_string()))?;
+        let key = parse_key(part).ok_or_else(|| ShortcutError::UnsupportedKey(part.to_string()))?;
         keys.push(key);
     }
     Ok(keys)

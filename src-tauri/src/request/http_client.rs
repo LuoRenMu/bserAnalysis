@@ -13,7 +13,7 @@ use tokio::sync::Mutex as AsyncMutex;
 use super::{
     cache::{Cache, HttpMetadata, CACHE},
     error::{RequestError, Result},
-    manager::{ApiRequest, REQUEST_MANAGER, ResponseBytes},
+    manager::{ApiRequest, ResponseBytes, REQUEST_MANAGER},
 };
 
 /// Cache policy for HTTP requests
@@ -245,7 +245,8 @@ impl HttpClient {
                 // Build conditional request
                 let mut api = request.to_api_request();
                 if let Some(etag) = &metadata.etag {
-                    api.headers.insert("If-None-Match".to_string(), etag.clone());
+                    api.headers
+                        .insert("If-None-Match".to_string(), etag.clone());
                 }
                 if let Some(last_modified) = &metadata.last_modified {
                     api.headers
@@ -256,7 +257,10 @@ impl HttpClient {
 
                 // 304 Not Modified - refresh cache TTL and return cached data
                 if response.is_not_modified() {
-                    log::debug!("← 304 Not Modified, using cached data for {}", request.full_url());
+                    log::debug!(
+                        "← 304 Not Modified, using cached data for {}",
+                        request.full_url()
+                    );
                     self.cache
                         .set_with_metadata(cache_key, cached_json.clone(), ttl, metadata);
                     return Ok(serde_json::from_str(&cached_json)?);
@@ -324,8 +328,7 @@ impl Default for HttpClient {
 }
 
 /// Global HTTP client instance
-pub static HTTP_CLIENT: std::sync::LazyLock<HttpClient> =
-    std::sync::LazyLock::new(HttpClient::new);
+pub static HTTP_CLIENT: std::sync::LazyLock<HttpClient> = std::sync::LazyLock::new(HttpClient::new);
 
 #[cfg(test)]
 mod tests {

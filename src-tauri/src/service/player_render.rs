@@ -219,11 +219,25 @@ pub async fn assemble_player_search(
 ) -> Result<PlayerSearchRender> {
     let page = page.max(1);
     let matches_mode = mode;
-    let profile_mode = if mode == MatchingMode::All { MatchingMode::Rank } else { mode };
+    let profile_mode = if mode == MatchingMode::All {
+        MatchingMode::Rank
+    } else {
+        mode
+    };
     let team_mode = DakGgTeamMode::All;
 
     // 并发获取所有需要的数据
-    let (profile, current_season, matches_response, characters, tiers, items, weapons, trait_skills, tactical_skills) = tokio::try_join!(
+    let (
+        profile,
+        current_season,
+        matches_response,
+        characters,
+        tiers,
+        items,
+        weapons,
+        trait_skills,
+        tactical_skills,
+    ) = tokio::try_join!(
         EternalReturnDakGgApi::get_profile(nickname),
         EternalReturnDakGgApi::get_current_season(),
         EternalReturnDakGgApi::get_game(nickname, None, matches_mode, team_mode, page),
@@ -395,10 +409,12 @@ pub async fn assemble_player_profile(
     );
 
     // 获取段位信息（从 player_seasons 中获取 tier_id，然后匹配 tiers）
-    let (tier_image_url, tier_name) = profile.player_seasons
+    let (tier_image_url, tier_name) = profile
+        .player_seasons
         .first()
         .and_then(|player_season| {
-            tiers.get_tier_by_id(player_season.tier_id)
+            tiers
+                .get_tier_by_id(player_season.tier_id)
                 .or_else(|| tiers.get_unrank())
                 .map(|t| (Some(t.icon_url.clone()), Some(t.name.clone())))
         })
@@ -413,15 +429,31 @@ pub async fn assemble_player_profile(
 
         let count = recent_matches.len();
         let count_f64 = count as f64;
-        let ranks = recent_matches.iter().map(|m| m.game_rank()).collect::<Vec<_>>();
+        let ranks = recent_matches
+            .iter()
+            .map(|m| m.game_rank())
+            .collect::<Vec<_>>();
 
         Some(PlayerSummary {
             count,
             avg_rank: fmt1(ranks.iter().map(|r| *r as f64).sum::<f64>() / count_f64),
             wins: ranks.iter().filter(|r| **r == 1).count().to_string(),
-            avg_tk: fmt1(recent_matches.iter().map(|m| m.team_kill as f64).sum::<f64>() / count_f64),
+            avg_tk: fmt1(
+                recent_matches
+                    .iter()
+                    .map(|m| m.team_kill as f64)
+                    .sum::<f64>()
+                    / count_f64,
+            ),
             ranks,
-            avg_dmg: format!("{:.0}", recent_matches.iter().map(|m| m.damage_to_player as f64).sum::<f64>() / count_f64),
+            avg_dmg: format!(
+                "{:.0}",
+                recent_matches
+                    .iter()
+                    .map(|m| m.damage_to_player as f64)
+                    .sum::<f64>()
+                    / count_f64
+            ),
         })
     });
 
@@ -581,16 +613,14 @@ pub async fn fetch_game_reference() -> Result<GameReference> {
             .iter()
             .map(|infusion| {
                 let (name, image_url) = match infusion.product_type.as_str() {
-                    "EquipItemSelector" => ("装备选择器".to_string(), CDN_PLACEHOLDER_URL.to_string()),
-                    "EquipItemMythicSelector" => {
-                        ("神话装备选择器".to_string(), CDN_PLACEHOLDER_URL.to_string())
+                    "EquipItemSelector" => {
+                        ("装备选择器".to_string(), CDN_PLACEHOLDER_URL.to_string())
                     }
-                    _ => resolve_infusion_product(
-                        infusion.product_id,
-                        &traits,
-                        &items,
-                        &tacticals,
+                    "EquipItemMythicSelector" => (
+                        "神话装备选择器".to_string(),
+                        CDN_PLACEHOLDER_URL.to_string(),
                     ),
+                    _ => resolve_infusion_product(infusion.product_id, &traits, &items, &tacticals),
                 };
                 InfusionRef {
                     id: infusion.id,
@@ -805,7 +835,12 @@ pub async fn fetch_character_analysis(
     let chinese_name = character.name.clone();
 
     let (analysis, weapons, tiers, items, tacticals, traits, skills) = tokio::try_join!(
-        EternalReturnDakGgApi::character_analysis(&key, &team_mode, &matching_mode, tier.as_deref()),
+        EternalReturnDakGgApi::character_analysis(
+            &key,
+            &team_mode,
+            &matching_mode,
+            tier.as_deref()
+        ),
         EternalReturnDakGgApi::get_weapons(),
         EternalReturnDakGgApi::get_tiers(),
         EternalReturnDakGgApi::get_items(),
@@ -814,7 +849,12 @@ pub async fn fetch_character_analysis(
         EternalReturnDakGgApi::get_skills(),
     )?;
 
-    let image_url = character_url(&characters, character_id, 0, DakGgCharacterImgType::CharResult);
+    let image_url = character_url(
+        &characters,
+        character_id,
+        0,
+        DakGgCharacterImgType::CharResult,
+    );
     let page = analysis.props.page_props;
 
     let refs = AnalysisRefs {
@@ -1153,8 +1193,15 @@ fn trait_pick(
 }
 
 /// 钴协议灌注：key 为灌注 productId，依次按 强化 / 物品 / 战术技能 解析名称与图标。
-fn infusion_pick(product_id: i64, count: i64, total: i64, win: i64, refs: &AnalysisRefs) -> PickRender {
-    let (name, icon_url) = resolve_infusion_product(product_id, refs.traits, refs.items, refs.tacticals);
+fn infusion_pick(
+    product_id: i64,
+    count: i64,
+    total: i64,
+    win: i64,
+    refs: &AnalysisRefs,
+) -> PickRender {
+    let (name, icon_url) =
+        resolve_infusion_product(product_id, refs.traits, refs.items, refs.tacticals);
     PickRender {
         id: product_id,
         name,
@@ -1515,7 +1562,7 @@ fn game_convert_match(
             .unwrap_or_else(|| game.character_num.to_string()),
         rank: game.game_rank(),
         type_name: matching_mode_name(matching_mode).to_string(),
-        mode_id: game.matching_mode ,
+        mode_id: game.matching_mode,
         kill: game.player_kill,
         tk: game.team_kill,
         assist: game.player_assistant,
@@ -1535,9 +1582,11 @@ fn game_convert_match(
             .map(|skill| cdn_url(&skill.image_url))
             .unwrap_or_else(|| CDN_PLACEHOLDER_URL.to_string()),
         trait_skill_id: game.trait_first_core,
-        trait_skill_group_url: trait_group_url.clone().unwrap_or_else(|| CDN_PLACEHOLDER_URL.to_string()),
-        trait_skill_group_id:  match trait_group_url {
-            Some(_) => game.trait_second_sub.first().copied().unwrap_or_default() ,
+        trait_skill_group_url: trait_group_url
+            .clone()
+            .unwrap_or_else(|| CDN_PLACEHOLDER_URL.to_string()),
+        trait_skill_group_id: match trait_group_url {
+            Some(_) => game.trait_second_sub.first().copied().unwrap_or_default(),
             None => -1,
         },
         character_avatar_url: character_url(
@@ -1669,12 +1718,12 @@ pub(crate) fn trait_skill_group_url(
     trait_skills: &DakGgTraitSkillsResponse,
 ) -> Option<String> {
     if matching_mode == MatchingMode::Cobalt {
-        return None
+        return None;
     }
 
     let skill_id = game.trait_second_sub.first()?;
     let skill = trait_skills.get_trait_skill_by_id(*skill_id)?;
-     trait_skills
+    trait_skills
         .trait_skill_groups
         .iter()
         .find(|group| group.key == skill.group)

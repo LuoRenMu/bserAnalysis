@@ -7,6 +7,8 @@ export function formatNumber(value: number | null | undefined) {
     return value.toLocaleString();
 }
 
+
+
 export function formatSignedNumber(value: number | null | undefined) {
     if (value == null || Number.isNaN(value)) return "-";
     if (value > 0) return `+${value.toLocaleString()}`;
@@ -41,6 +43,14 @@ export function ratioTone(value: number) {
     if (value >= 0.8) return "#11b288";
     if (value >= 0.5) return "#ca9372";
     return "#ef4444";
+}
+
+ export function accentForRank(rank: number,isCobalt:boolean=false) {
+    if (isCobalt && rank == 2) return "#4b525d";
+    if (rank <= 2) return "#11b288";
+    if (rank <= 3) return "#207ac7";
+    if (rank == 99) return "#f5a623";
+    return "#4b525d";
 }
 
 export function escapeStateLabel(state: number) {

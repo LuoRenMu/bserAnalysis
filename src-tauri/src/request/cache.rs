@@ -11,7 +11,7 @@ pub struct HttpMetadata {
 
 /// Cache entry with expiration time and metadata
 struct CacheEntry {
-    data: String,  // 存储 JSON 字符串
+    data: String, // 存储 JSON 字符串
     expires_at: Instant,
     http_metadata: Option<HttpMetadata>,
 }
@@ -67,7 +67,9 @@ impl Cache {
     /// Get cached JSON string by key
     pub fn get(&self, key: &str) -> Option<String> {
         let store = self.store.read().unwrap();
-        store.get(key).and_then(|entry| entry.get().map(|s| s.to_string()))
+        store
+            .get(key)
+            .and_then(|entry| entry.get().map(|s| s.to_string()))
     }
 
     /// Set cached JSON string with TTL
@@ -111,7 +113,11 @@ impl Cache {
     pub fn update_language(&self, new_lang: &str) {
         let mut current = self.current_language.write().unwrap();
         if *current != new_lang {
-            log::info!("Language changed from {} to {}, clearing cache", *current, new_lang);
+            log::info!(
+                "Language changed from {} to {}, clearing cache",
+                *current,
+                new_lang
+            );
             *current = new_lang.to_string();
             drop(current);
             self.clear_all();
@@ -158,10 +164,18 @@ mod tests {
     fn test_cache_get_set() {
         let cache = Cache::new();
 
-        cache.set("key1".to_string(), "value1".to_string(), Duration::from_secs(10));
+        cache.set(
+            "key1".to_string(),
+            "value1".to_string(),
+            Duration::from_secs(10),
+        );
         assert_eq!(cache.get("key1"), Some("value1".to_string()));
 
-        cache.set("key2".to_string(), "value2".to_string(), Duration::from_secs(10));
+        cache.set(
+            "key2".to_string(),
+            "value2".to_string(),
+            Duration::from_secs(10),
+        );
         assert_eq!(cache.get("key2"), Some("value2".to_string()));
     }
 
@@ -169,7 +183,11 @@ mod tests {
     fn test_cache_expiration() {
         let cache = Cache::new();
 
-        cache.set("key".to_string(), "value".to_string(), Duration::from_millis(10));
+        cache.set(
+            "key".to_string(),
+            "value".to_string(),
+            Duration::from_millis(10),
+        );
         assert_eq!(cache.get("key"), Some("value".to_string()));
 
         std::thread::sleep(Duration::from_millis(20));
@@ -180,7 +198,11 @@ mod tests {
     fn test_cache_remove() {
         let cache = Cache::new();
 
-        cache.set("key".to_string(), "value".to_string(), Duration::from_secs(10));
+        cache.set(
+            "key".to_string(),
+            "value".to_string(),
+            Duration::from_secs(10),
+        );
         assert!(cache.get("key").is_some());
 
         cache.remove("key");
@@ -191,8 +213,16 @@ mod tests {
     fn test_cache_clear_all() {
         let cache = Cache::new();
 
-        cache.set("key1".to_string(), "value1".to_string(), Duration::from_secs(10));
-        cache.set("key2".to_string(), "value2".to_string(), Duration::from_secs(10));
+        cache.set(
+            "key1".to_string(),
+            "value1".to_string(),
+            Duration::from_secs(10),
+        );
+        cache.set(
+            "key2".to_string(),
+            "value2".to_string(),
+            Duration::from_secs(10),
+        );
 
         cache.clear_all();
 
@@ -204,7 +234,11 @@ mod tests {
     fn test_language_change_clears_cache() {
         let cache = Cache::new();
 
-        cache.set("key".to_string(), "value".to_string(), Duration::from_secs(10));
+        cache.set(
+            "key".to_string(),
+            "value".to_string(),
+            Duration::from_secs(10),
+        );
         assert!(cache.get("key").is_some());
 
         cache.update_language("en");
@@ -229,6 +263,9 @@ mod tests {
 
         let retrieved = cache.get_metadata("key").unwrap();
         assert_eq!(retrieved.etag, Some("etag123".to_string()));
-        assert_eq!(retrieved.last_modified, Some("Mon, 01 Jan 2024".to_string()));
+        assert_eq!(
+            retrieved.last_modified,
+            Some("Mon, 01 Jan 2024".to_string())
+        );
     }
 }

@@ -38,12 +38,12 @@ body.overlay-window {
   animation: slide-in-right 0.3s ease-out;
 }
 
-/* ==================== 流动彩色文字动画 ==================== */
+
 
 @keyframes rainbow-flow {
-  0%   { background-position:   0% 50%; }
+  0%   { background-position:   0 50%; }
   50%  { background-position: 100% 50%; }
-  100% { background-position:   0% 50%; }
+  100% { background-position:   0 50%; }
 }
 
 .rainbow-text {
@@ -80,9 +80,7 @@ body.overlay-window {
   -webkit-text-fill-color: #000;
 }
 
-/* ==================== 自定义滚动条样式 ==================== */
-
-/* 全局滚动条 - Webkit (Chrome, Safari, Edge) */
+/* 全局滚动条 */
 * {
   scrollbar-width: thin;
   scrollbar-color: rgb(163 163 163 / 0.5) transparent;

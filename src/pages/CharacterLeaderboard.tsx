@@ -19,6 +19,7 @@ import {
   searchQueryAtom,
 } from "../store";
 import type { CharacterLeaderboardRow } from "../types/leaderboard";
+import { ErrorBanner, RankBadge, RefreshIcon, Segmented } from "../components/ui";
 
 const TEAM_MODE_OPTIONS = [
   { label: "排位", value: "SQUAD" },
@@ -33,74 +34,6 @@ const SORT_TYPE_OPTIONS = [
 
 const GRID =
   "grid grid-cols-[60px_minmax(180px,1fr)_110px_72px_72px_72px_86px_86px_86px_100px] items-center gap-2";
-
-function Segmented({
-  options,
-  value,
-  onChange,
-  disabled,
-}: {
-  options: { label: string; value: string }[];
-  value: string;
-  onChange: (value: string) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <div className="inline-flex flex-wrap items-center gap-1 rounded-lg bg-neutral-200 p-1 dark:bg-neutral-900">
-      {options.map((option) => {
-        const active = option.value === value;
-
-        return (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={active}
-            disabled={disabled}
-            onClick={() => onChange(option.value)}
-            className={`relative h-8 rounded-md px-3.5 text-xs font-semibold transition-all disabled:cursor-wait disabled:opacity-60 ${
-              active
-                ? "bg-white text-neutral-900 shadow-sm dark:bg-neutral-700 dark:text-neutral-50"
-                : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-100"
-            }`}
-          >
-            {option.label}
-            {active && <span className="absolute inset-x-3 bottom-1 h-0.5 rounded-full bg-[#ca9372]" />}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function RefreshIcon({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M13.65 8a5.65 5.65 0 1 1-1.55-3.9" />
-      <path d="M13.6 2.3v2.6H11" />
-    </svg>
-  );
-}
-
-function RankBadge({ rank }: { rank: number }) {
-  const top = rank <= 3;
-
-  return (
-    <div className="text-center">
-      <div className={`text-base font-black tabular-nums ${top ? "text-[#ca9372]" : "text-neutral-700 dark:text-neutral-300"}`}>
-        {rank}
-      </div>
-    </div>
-  );
-}
 
 function CharacterLeaderboardTableRow({
   row,
@@ -336,11 +269,7 @@ export default function CharacterLeaderboard() {
           </div>
         </div>
 
-        {error && (
-          <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-            {error}
-          </div>
-        )}
+        <ErrorBanner message={error} />
 
         {!characterId && !loading && (
           <div className="rounded-lg border border-neutral-200 bg-white px-3 py-16 text-center text-sm font-semibold text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">

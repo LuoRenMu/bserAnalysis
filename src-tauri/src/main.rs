@@ -1,7 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-
 use tauri::Manager;
 use tauri_plugin_log::{Target, TargetKind, TimezoneStrategy};
 use tauri_plugin_prevent_default::Flags;
@@ -42,10 +41,8 @@ fn main() {
             let app_handle = app.handle().clone();
 
             // 初始化 OverlayManager（共享同一个 Plugin 句柄）
-            let overlay_manager = bseranalysis_lib::overlay::OverlayManager::new(
-                app_handle.clone(),
-                plugin_handle,
-            );
+            let overlay_manager =
+                bseranalysis_lib::overlay::OverlayManager::new(app_handle.clone(), plugin_handle);
             app.manage(overlay_manager);
 
             // 初始化键盘中心（rdev 监听线程）
@@ -57,8 +54,7 @@ fn main() {
             }
 
             // 从已保存的设置中注册 overlay 快捷键
-            let settings_manager =
-                app.state::<bseranalysis_lib::settings::SettingsManager>();
+            let settings_manager = app.state::<bseranalysis_lib::settings::SettingsManager>();
             if let Ok(settings) = settings_manager.load(&app_handle) {
                 match bseranalysis_lib::keyboard::parse_shortcut(&settings.overlay_shortcut) {
                     Ok(combo) => {
@@ -110,6 +106,9 @@ fn main() {
             bseranalysis_lib::command::overlay::hide_overlay_window,
             bseranalysis_lib::command::overlay::toggle_overlay_window,
             bseranalysis_lib::command::overlay::is_overlay_window_visible,
+            bseranalysis_lib::command::overlay::emit_overlay_mock,
+            bseranalysis_lib::command::overlay::try_take_overlay_mock,
+            bseranalysis_lib::command::overlay::emit_overlay_opacity,
             bseranalysis_lib::command::keyboard::start_shortcut_recording,
             bseranalysis_lib::command::keyboard::cancel_shortcut_recording,
             bseranalysis_lib::command::keyboard::is_shortcut_recording,
@@ -124,4 +123,3 @@ fn main() {
             }
         });
 }
-

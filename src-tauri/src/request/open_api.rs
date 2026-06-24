@@ -11,7 +11,7 @@ use tokio::time::sleep;
 use crate::request::{
     dakgg_api::EternalReturnDakGgApi,
     error::{RequestError, Result},
-    helpers::{encode_component},
+    helpers::encode_component,
     manager::{ApiRequest, ResponseBytes, REQUEST_MANAGER},
     models::{
         now_local_naive, BaseGameDataResponse, BattleUserGamesResponse, GameDataSeasonResponse,
@@ -35,9 +35,7 @@ impl EternalReturnOpenApi {
 
     pub async fn get_id_by_nickname(nickname: &str) -> Result<UserNickNameResponse> {
         let encoded = encode_component(nickname);
-        let api = open_request(
-            format!("/v1/user/nickname?query={encoded}"),
-        );
+        let api = open_request(format!("/v1/user/nickname?query={encoded}"));
         let response = open_call(&api).await?;
         let body: Value = serde_json::from_slice(&response.bytes)?;
 
@@ -53,10 +51,7 @@ impl EternalReturnOpenApi {
     }
 
     pub async fn get_user_stats_v1(user_id: &str, season_id: i32) -> Result<UserStatsResponse> {
-        Self::open_json(
-            format!("/v1/user/stats/uid/{user_id}/{season_id}"),
-        )
-        .await
+        Self::open_json(format!("/v1/user/stats/uid/{user_id}/{season_id}")).await
     }
 
     pub async fn get_user_stats_v2(
@@ -64,12 +59,10 @@ impl EternalReturnOpenApi {
         season_id: i32,
         matching_mode: MatchingMode,
     ) -> Result<UserStatsResponse> {
-        Self::open_json(
-            format!(
-                "/v2/user/stats/uid/{user_id}/{season_id}/{}",
-                matching_mode.value()
-            ),
-        )
+        Self::open_json(format!(
+            "/v2/user/stats/uid/{user_id}/{season_id}/{}",
+            matching_mode.value()
+        ))
         .await
     }
 
@@ -114,9 +107,10 @@ impl EternalReturnOpenApi {
         season_id: i32,
         matching_team_mode: MatchingTeamMode,
     ) -> Result<Value> {
-        Self::open_json(
-            format!("/v1/rank/top/{season_id}/{}", matching_team_mode.value()),
-        )
+        Self::open_json(format!(
+            "/v1/rank/top/{season_id}/{}",
+            matching_team_mode.value()
+        ))
         .await
     }
 

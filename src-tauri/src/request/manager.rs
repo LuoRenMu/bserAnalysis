@@ -262,7 +262,11 @@ impl RequestManager {
             "← {status} {full_url} ({} bytes){}{}",
             bytes.len(),
             if etag.is_some() { " [ETag]" } else { "" },
-            if last_modified.is_some() { " [Last-Modified]" } else { "" }
+            if last_modified.is_some() {
+                " [Last-Modified]"
+            } else {
+                ""
+            }
         );
 
         Ok(ResponseBytes {
@@ -346,7 +350,6 @@ mod tests {
             "https://other.test/a"
         );
     }
-
 
     #[test]
     fn api_request_rejects_error_status_by_default() {

@@ -1264,25 +1264,23 @@ mod local_datetime {
         NaiveDateTime::parse_from_str(&value, FORMAT).map_err(serde::de::Error::custom)
     }
 }
-use serde::{Serialize, Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use serde_json::Value;
-
 
 // character
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CharacterAnalysis {
-    pub props: CharacterAnalysisRoot
+    pub props: CharacterAnalysisRoot,
 }
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CharacterAnalysisRoot {
     #[serde(rename = "initialProps")]
     pub initial_props: InitialProps,
     #[serde(rename = "pageProps")]
-    pub page_props: PageProps
+    pub page_props: PageProps,
 }
-
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PageProps {
@@ -1544,8 +1542,6 @@ pub struct InitialProps {
     #[serde(rename = "hideMobileAppNotice")]
     pub hide_mobile_app_notice: bool,
 }
-
-
 
 #[cfg(test)]
 mod tests {

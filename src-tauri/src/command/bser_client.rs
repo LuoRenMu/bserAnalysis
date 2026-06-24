@@ -25,10 +25,7 @@ pub fn fetch(state: tauri::State<PluginState>) -> Result<GameSnapshot, String> {
 }
 
 #[tauri::command]
-pub fn load(
-    state: tauri::State<PluginState>,
-    path: String,
-) -> Result<(), String> {
+pub fn load(state: tauri::State<PluginState>, path: String) -> Result<(), String> {
     let trimmed = path.trim();
     if trimmed.is_empty() {
         return Err("DLL 路径不能为空".to_string());
@@ -47,5 +44,7 @@ pub fn load(
 
 #[tauri::command]
 pub fn get_plugin_path() -> String {
-    crate::config::get_plugin_path().to_string_lossy().to_string()
+    crate::config::get_plugin_path()
+        .to_string_lossy()
+        .to_string()
 }

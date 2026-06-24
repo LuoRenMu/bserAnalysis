@@ -66,7 +66,11 @@ pub async fn refresh_player(
     if let Err(error @ RequestError::NicknameNotFound(_)) =
         EternalReturnDakGgApi::sync(&nickname).await
     {
-        return Err(log_error("refresh_player sync", &format!("nickname={nickname:?}"), error));
+        return Err(log_error(
+            "refresh_player sync",
+            &format!("nickname={nickname:?}"),
+            error,
+        ));
     }
 
     assemble_player_search(&nickname, MatchingMode::from_value(mode), page)
@@ -99,7 +103,13 @@ pub async fn fetch_character_analysis(
         tier,
     )
     .await
-    .map_err(|e| log_error("fetch_character_analysis", &format!("character_id={character_id}"), e))
+    .map_err(|e| {
+        log_error(
+            "fetch_character_analysis",
+            &format!("character_id={character_id}"),
+            e,
+        )
+    })
 }
 
 #[tauri::command]
@@ -118,7 +128,13 @@ pub async fn fetch_player_overview(
     log::info!("fetch_player_overview nickname={nickname:?} mode={mode:?}");
     assemble_player_overview(&nickname, MatchingMode::from_value(mode))
         .await
-        .map_err(|e| log_error("fetch_player_overview", &format!("nickname={nickname:?}"), e))
+        .map_err(|e| {
+            log_error(
+                "fetch_player_overview",
+                &format!("nickname={nickname:?}"),
+                e,
+            )
+        })
 }
 
 #[tauri::command]
@@ -127,9 +143,12 @@ pub async fn fetch_player_profile(
     mode: Option<i32>,
 ) -> Result<crate::service::player_render::PlayerProfileRender, String> {
     log::info!("fetch_player_profile nickname={nickname:?} mode={mode:?}");
-    crate::service::player_render::assemble_player_profile(&nickname, MatchingMode::from_value(mode))
-        .await
-        .map_err(|e| log_error("fetch_player_profile", &format!("nickname={nickname:?}"), e))
+    crate::service::player_render::assemble_player_profile(
+        &nickname,
+        MatchingMode::from_value(mode),
+    )
+    .await
+    .map_err(|e| log_error("fetch_player_profile", &format!("nickname={nickname:?}"), e))
 }
 
 #[tauri::command]
@@ -185,7 +204,8 @@ pub async fn fetch_character_leaderboard(
 }
 
 #[tauri::command]
-pub async fn fetch_seasons() -> Result<Vec<crate::service::leaderboard_render::SeasonBrief>, String> {
+pub async fn fetch_seasons() -> Result<Vec<crate::service::leaderboard_render::SeasonBrief>, String>
+{
     log::info!("fetch_seasons");
     crate::service::leaderboard_render::fetch_seasons()
         .await

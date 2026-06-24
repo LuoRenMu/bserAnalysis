@@ -25,6 +25,7 @@
 
 use std::ffi::c_void;
 
+use crate::core::{Command, DATA_SIZE};
 use windows::core::{PCSTR, PCWSTR};
 use windows::Win32::Foundation::{CloseHandle, HANDLE, WAIT_OBJECT_0};
 use windows::Win32::System::Memory::{
@@ -35,7 +36,6 @@ use windows::Win32::System::Threading::{
     EVENT_MODIFY_STATE, SYNCHRONIZATION_SYNCHRONIZE,
 };
 use windows::Win32::UI::WindowsAndMessaging::{FindWindowW, GetWindowThreadProcessId};
-use crate::core::{Command, DATA_SIZE};
 
 const TIMEOUT_MS: u32 = 5000;
 
@@ -51,7 +51,7 @@ pub fn find_game_pid() -> Option<u32> {
             windows::core::PCWSTR(class.as_ptr()),
             windows::core::PCWSTR(title.as_ptr()),
         )
-            .ok()?;
+        .ok()?;
         let mut pid: u32 = 0;
         GetWindowThreadProcessId(hwnd, Some(&mut pid));
         if pid == 0 {
@@ -185,9 +185,10 @@ impl Drop for GameBridge {
     fn drop(&mut self) {
         unsafe {
             if !self.view.is_null() {
-                let _ = UnmapViewOfFile(windows::Win32::System::Memory::MEMORY_MAPPED_VIEW_ADDRESS {
-                    Value: self.view,
-                });
+                let _ =
+                    UnmapViewOfFile(windows::Win32::System::Memory::MEMORY_MAPPED_VIEW_ADDRESS {
+                        Value: self.view,
+                    });
             }
             let _ = CloseHandle(self.map);
             let _ = CloseHandle(self.mutex);
@@ -221,8 +222,9 @@ unsafe fn open_event(name: &[u16]) -> Result<HANDLE, String> {
         false,
         PCWSTR(name.as_ptr()),
     )
-        .map_err(|e| format!("OpenEvent failed: {e}"))
+    .map_err(|e| format!("OpenEvent failed: {e}"))
 }
+
 
 /// A snapshot of the 1888-byte game record.
 ///
@@ -339,7 +341,12 @@ pub const MAX_ENTRIES: usize = 32;
 impl GameSnapshot {
     /// Parse a 1888-byte shared-memory record into a structured [`GameSnapshot`].
     pub fn from_bytes(bytes: Vec<u8>) -> Self {
-        assert_eq!(bytes.len(), DATA_SIZE, "GameSnapshot requires exactly {DATA_SIZE} bytes");
+        assert_eq!(
+            bytes.len(),
+            DATA_SIZE,
+            "GameSnapshot requires exactly {DATA_SIZE} bytes"
+        );
+        
 
         /// Read a little-endian u32 at the given offset.
         fn rdu32(raw: &[u8], off: usize) -> u32 {
@@ -368,7 +375,6 @@ impl GameSnapshot {
         }
 
         let entry_count = (rdu32(&bytes, 0x5c) as usize).min(MAX_ENTRIES);
-
         let mut raw = Vec::with_capacity(entry_count);
         for i in 0..entry_count {
             let base = ENTRY_BASE + i * ENTRY_STRIDE;
@@ -406,5 +412,3 @@ impl GameSnapshot {
         }
     }
 }
-
-

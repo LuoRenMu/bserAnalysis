@@ -5,24 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { CharacterBrief } from "../types/bser";
 import { appSettingsAtom, matchesAliasQuery, resolveCharacterName } from "../utils/settings";
 import { characterBriefAtom, characterBriefLoadingAtom, fetchCharactersAtom } from "../store";
-
-function SearchIcon() {
-    return (
-        <svg
-            aria-hidden="true"
-            className="h-4 w-4"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <circle cx="7" cy="7" r="4.5"/>
-            <line x1="10.2" y1="10.2" x2="14" y2="14"/>
-        </svg>
-    );
-}
+import { SearchIcon } from "../components/ui";
 
 /** 职能英文 → 翻译key */
 const ROLE_TRANSLATION_KEYS: Record<string, string> = {

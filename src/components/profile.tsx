@@ -165,7 +165,6 @@ export function profile(
   settings?: AppSettings | null,
 ) {
   const players = visiblePlayers(snapshot);
-
   return (
     <div className="h-full overflow-auto bg-neutral-100 p-4 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
       <div className="mb-3 flex items-center justify-between gap-3">

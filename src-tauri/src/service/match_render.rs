@@ -188,7 +188,10 @@ pub async fn assemble_match_detail(
     let user_games = response.matches;
 
     if user_games.is_empty() {
-        return Err(RequestError::NotFound(format!("Match {} not found", game_id)));
+        return Err(RequestError::NotFound(format!(
+            "Match {} not found",
+            game_id
+        )));
     }
 
     let characters = EternalReturnDakGgApi::get_characters().await?;
@@ -282,7 +285,13 @@ fn cluster_premade(players: &[&UserGame]) -> Vec<Vec<i64>> {
 
     premade_map
         .into_iter()
-        .filter_map(|(_, members)| if members.len() > 1 { Some(members) } else { None })
+        .filter_map(|(_, members)| {
+            if members.len() > 1 {
+                Some(members)
+            } else {
+                None
+            }
+        })
         .collect()
 }
 

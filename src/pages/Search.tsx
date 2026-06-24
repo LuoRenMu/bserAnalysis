@@ -22,6 +22,9 @@ import {lookupInfusion, lookupRef, stripTags, useGameData, type GameData, type R
 import {createCharacterNavigationHandler, navigateToCharacterByName} from "../utils/navigation";
 import type {CharacterBrief} from "../types/bser";
 import {calculateVisiblePages} from "../utils/pagination";
+import {accentForRank} from "../utils/convert.ts";
+import {signed} from "../utils/format";
+import {ErrorBanner, PaginationNav, RefreshIcon, SearchIcon} from "../components/ui";
 
 interface SkillIcon {
     url: string;
@@ -64,42 +67,6 @@ interface UiMatch {
     equipment: EquipRender[];
     ranked: boolean;
     kdaRatio: string;
-}
-
-function SearchIcon() {
-    return (
-        <svg
-            aria-hidden="true"
-            className="h-4 w-4"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <circle cx="7" cy="7" r="4.5"/>
-            <line x1="10.2" y1="10.2" x2="14" y2="14"/>
-        </svg>
-    );
-}
-
-function RefreshIcon({className = "h-4 w-4"}: { className?: string }) {
-    return (
-        <svg
-            aria-hidden="true"
-            className={className}
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <path d="M13.65 8a5.65 5.65 0 1 1-1.55-3.9"/>
-            <path d="M13.6 2.3v2.6H11"/>
-        </svg>
-    );
 }
 
 function TrendChart({stats}: { stats?: PlayerMmrStats | null }) {
@@ -309,7 +276,9 @@ function RecentSummary({summary}: { summary?: PlayerSummary | null }) {
             <h2 className="border-b border-neutral-200 px-4 py-3 text-lg font-semibold text-neutral-950 dark:border-neutral-800 dark:text-neutral-50">
                 {t('search.recentSummary')}
             </h2>
-            <div className="grid grid-cols-3 gap-3 px-4 py-4 text-center">
+            <div className="grid grid-cols-3 gap-3 px-4 py-4 text
+
+            -center">
                 {[
                     [t('search.recentWins', { count: summary.count }), summary.wins],
                     [t('search.recentAvgRank', { count: summary.count }), `#${summary.avgRank}`],
@@ -599,19 +568,9 @@ function mapRender(render: PlayerSearchRender, t: (key: string, params?: any) =>
     return {summaryRows, characterRows, partnerRows, matches};
 }
 
-function signed(value: number) {
-    return value > 0 ? `+${value}` : value.toString();
-}
-
 
 // 6 为钴协议
-function accentForRank(rank: number,isCobalt:boolean=false) {
-    if (isCobalt && rank == 2) return "#4b525d";
-    if (rank <= 2) return "#11b288";
-    if (rank <= 3) return "#207ac7";
-    if (rank == 99) return "#f5a623";
-    return "#4b525d";
-}
+
 
 const PAGE_BUTTON_LIMIT = 20;
 
@@ -877,8 +836,7 @@ export default function Search() {
                     </form>
                 </div>
 
-                {error && <div
-                    className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">{error}</div>}
+                <ErrorBanner message={error}/>
 
                 {compareError && <div
                     className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">{t('search.compareFailed')}: {compareError}</div>}
@@ -1065,46 +1023,17 @@ export default function Search() {
                                     />
                                 ))}
                                 {visiblePages.length > 0 && (
-                                    <nav className="mt-5 flex flex-wrap items-center justify-center gap-1.5"
-                                         aria-label="Pagination">
-                                        <button
-                                            type="button"
-                                            disabled={loading || page <= 1}
-                                            onClick={() => handlePageChange(page - 1)}
-                                            className="h-9 rounded border border-neutral-300 bg-white px-3 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-200/60 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
-                                        >
-                                            {t('search.prevPage')}
-                                        </button>
-                                        {visiblePages.slice(Math.max(0, page - 5), Math.min(page + 5, visiblePages.length)).map((pageNumber) => {
-                                            const active = pageNumber === page;
-
-                                            return (
-                                                <button
-                                                    key={pageNumber}
-                                                    type="button"
-                                                    aria-current={active ? "page" : undefined}
-                                                    disabled={loading}
-                                                    onClick={() => handlePageChange(pageNumber)}
-                                                    className={`h-9 rounded border px-3 text-sm font-semibold transition-colors disabled:cursor-wait disabled:opacity-60 ${
-                                                        active
-                                                            ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
-                                                            : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-200/60 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
-                                                    }`}
-                                                    style={{minWidth: "2.25rem"}}
-                                                >
-                                                    {pageNumber}
-                                                </button>
-                                            );
-                                        })}
-                                        <button
-                                            type="button"
-                                            disabled={loading || !render.hasNext}
-                                            onClick={() => handlePageChange(render.nextPage ?? page + 1)}
-                                            className="h-9 rounded border border-neutral-300 bg-white px-3 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-200/60 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
-                                        >
-                                            {t('search.nextPage')}
-                                        </button>
-                                    </nav>
+                                    <PaginationNav
+                                        page={page}
+                                        visiblePages={visiblePages}
+                                        loading={loading}
+                                        hasNext={render?.hasNext}
+                                        nextPage={render?.nextPage}
+                                        prevLabel={t('search.prevPage')}
+                                        nextLabel={t('search.nextPage')}
+                                        onPageChange={handlePageChange}
+                                        windowSize={5}
+                                    />
                                 )}
                                 <div
                                     className="mt-4 h-9 text-center text-sm font-semibold text-neutral-500 dark:text-neutral-400">

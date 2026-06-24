@@ -13,6 +13,8 @@ export interface AppSettings {
   skipInjectionConfirm: boolean;
   boundPlayerName: string;
   overlayShortcut: string;
+  /** Overlay 背景透明度 0..1，默认 0.75 与原 `bg-black/75` 对齐。 */
+  overlayBackgroundOpacity: number;
 }
 
 export const DEFAULT_DLL_PATH =
@@ -28,6 +30,7 @@ export const defaultSettings: AppSettings = {
   skipInjectionConfirm: false,
   boundPlayerName: "",
   overlayShortcut: "`",
+  overlayBackgroundOpacity: 0.75,
 };
 
 function aliasKey(value: string) {
@@ -51,6 +54,10 @@ function cleanAliases(entries: AliasEntry[] | undefined): AliasEntry[] {
 }
 
 function normalizeSettings(value: Partial<AppSettings> | undefined): AppSettings {
+  const rawOpacity = Number(value?.overlayBackgroundOpacity);
+  const opacity = Number.isFinite(rawOpacity)
+    ? Math.min(1, Math.max(0, rawOpacity))
+    : defaultSettings.overlayBackgroundOpacity;
   return {
     playerAliases: cleanAliases(value?.playerAliases),
     characterAliases: cleanAliases(value?.characterAliases),
@@ -58,6 +65,7 @@ function normalizeSettings(value: Partial<AppSettings> | undefined): AppSettings
     skipInjectionConfirm: value?.skipInjectionConfirm ?? false,
     boundPlayerName: value?.boundPlayerName?.trim() || "",
     overlayShortcut: value?.overlayShortcut?.trim() || "",
+    overlayBackgroundOpacity: opacity,
   };
 }
 

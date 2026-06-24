@@ -76,7 +76,9 @@ impl OverlayManager {
                     None => {
                         none_count += 1;
                         if none_count >= 3 {
-                            log::info!("Injection lost (fetch None x{none_count}), stopping monitoring");
+                            log::info!(
+                                "Injection lost (fetch None x{none_count}), stopping monitoring"
+                            );
                             let _ = app_handle.emit("overlay-injection-lost", ());
                             break;
                         }
