@@ -1,7 +1,8 @@
 # bserAnalysis
 
 永恒轮回(Eternal Return) 游戏数据分析工具，基于 **Tauri v2 + React 19 + TypeScript** 构建。  
-数据源来自 [dak.gg](https://dak.gg/er)，非完全复刻，实现了常用的查询与分析功能。
+数据源来自 [dak.gg](https://dak.gg/er)，非完全复刻，实现了常用的查询与分析功能。  
+交流群:**交流群:654087758** 
 
 ## 功能截图
 
