@@ -128,19 +128,19 @@ function WeaponBuild({build, data}: { build: WeaponBuildRender; data: GameData |
         return map;
     }, [build.skills]);
 
-    const skillBuilds = build.skillBuilds.map((skillBuild) => {
+    const skillBuilds = useMemo(() => build.skillBuilds.map((skillBuild) => {
         const order = Array.isArray((skillBuild as { order?: string[] }).order)
             ? (skillBuild as { order?: string[] }).order ?? []
             : [];
         return {...skillBuild, order};
-    });
+    }), [build.skillBuilds]);
 
-    const itemBuilds = build.itemBuilds.map((itemBuild) => {
+    const itemBuilds = useMemo(() => build.itemBuilds.map((itemBuild) => {
         const order = Array.isArray((itemBuild as { order?: PickRender[] }).order)
             ? (itemBuild as { order?: PickRender[] }).order ?? []
             : [];
         return {...itemBuild, order};
-    });
+    }), [build.itemBuilds]);
 
     return (
         <div className="space-y-4">

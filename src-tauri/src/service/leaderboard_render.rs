@@ -94,10 +94,11 @@ pub async fn assemble_leaderboard(
         )
     };
 
-    let response =
-        EternalReturnDakGgApi::get_leaderboard(page, &season_type, server, team_mode).await?;
-    let characters = EternalReturnDakGgApi::get_characters().await?;
-    let tiers = EternalReturnDakGgApi::get_tiers().await?;
+    let (response, characters, tiers) = tokio::try_join!(
+        EternalReturnDakGgApi::get_leaderboard(page, &season_type, server, team_mode),
+        EternalReturnDakGgApi::get_characters(),
+        EternalReturnDakGgApi::get_tiers(),
+    )?;
 
     let rows = response
         .leaderboards
@@ -262,11 +263,12 @@ pub struct SeasonBrief {
 
 /// 赛季列表（按 id 降序），供英雄排行的赛季选择器使用。
 pub async fn fetch_seasons() -> Result<Vec<SeasonBrief>> {
-    let response = EternalReturnDakGgApi::get_game_data_by_season().await?;
-    let current_id = EternalReturnDakGgApi::get_current_season()
-        .await
-        .ok()
-        .map(|season| season.id);
+    let (response, current) = tokio::join!(
+        EternalReturnDakGgApi::get_game_data_by_season(),
+        EternalReturnDakGgApi::get_current_season(),
+    );
+    let response = response?;
+    let current_id = current.ok().map(|season| season.id);
     let mut seasons: Vec<SeasonBrief> = response
         .seasons
         .iter()

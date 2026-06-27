@@ -1,9 +1,12 @@
 import { Outlet } from "react-router-dom";
-import { useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
+import { useEffect } from "react";
 import "./App.css";
 import { useTheme } from "./utils/useTheme";
 import { useInjection } from "./utils/useInjection";
 import { fetchGameDataAtom } from "./store";
+import { appSettingsAtom } from "./utils/settings";
+import { registerGlobalOverlayShortcut } from "./utils/globalShortcut";
 import TitleBar from "./components/TitleBar";
 import Sidebar from "./components/Sidebar";
 import ErrorNotifications from "./components/ErrorNotifications";
@@ -12,7 +15,20 @@ function App() {
     const { theme, toggle } = useTheme();
     useInjection();
     const fetchGameData = useSetAtom(fetchGameDataAtom);
-    fetchGameData(); // 应用启动即加载游戏参考数据
+    const settings = useAtomValue(appSettingsAtom);
+
+    useEffect(() => {
+        void fetchGameData();
+    }, [fetchGameData]);
+
+    useEffect(() => {
+        const shortcut = settings.overlayShortcut.trim();
+        if (!shortcut) return;
+
+        registerGlobalOverlayShortcut(shortcut).catch((error) => {
+            console.error("Failed to register saved overlay shortcut:", error);
+        });
+    }, [settings.overlayShortcut]);
 
     return (
         <div className="h-screen flex flex-col">

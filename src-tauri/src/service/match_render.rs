@@ -194,12 +194,14 @@ pub async fn assemble_match_detail(
         )));
     }
 
-    let characters = EternalReturnDakGgApi::get_characters().await?;
-    let weapons = EternalReturnDakGgApi::get_weapons().await?;
-    let areas = EternalReturnDakGgApi::get_areas().await?;
-    let items = EternalReturnDakGgApi::get_items().await?;
-    let trait_skills = EternalReturnDakGgApi::get_trait_skills().await?;
-    let tactical_skills = EternalReturnDakGgApi::get_tactical_skills().await?;
+    let (characters, weapons, areas, items, trait_skills, tactical_skills) = tokio::try_join!(
+        EternalReturnDakGgApi::get_characters(),
+        EternalReturnDakGgApi::get_weapons(),
+        EternalReturnDakGgApi::get_areas(),
+        EternalReturnDakGgApi::get_items(),
+        EternalReturnDakGgApi::get_trait_skills(),
+        EternalReturnDakGgApi::get_tactical_skills(),
+    )?;
 
     // userNum → 昵称，用于把击杀/死亡详情里的 userNum 映射为可读昵称。
     let nick_map: HashMap<i64, String> = user_games

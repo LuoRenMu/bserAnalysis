@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from "react";
+import {useCallback, useMemo, useRef, useState} from "react";
 import type {ComponentProps} from "react";
 import {invoke} from "@tauri-apps/api/core";
 import {useAtom, useAtomValue, useSetAtom} from "jotai";
@@ -428,6 +428,10 @@ export default function Search() {
     const visiblePages = useMemo(() => calculateVisiblePages(page, render?.totalPage ?? 0, PAGE_BUTTON_LIMIT), [page, render?.totalPage]);
     const [expandedMatches, setExpandedMatches] = useState<Set<string>>(() => new Set());
     const [matchDetails, setMatchDetails] = useState<Record<string, MatchDetailState>>({});
+    const expandedMatchesRef = useRef(expandedMatches);
+    const matchDetailsRef = useRef(matchDetails);
+    expandedMatchesRef.current = expandedMatches;
+    matchDetailsRef.current = matchDetails;
 
     // 比较模式状态
     const [compareMode, setCompareMode] = useState(false);
@@ -455,8 +459,8 @@ export default function Search() {
     }, []);
 
     const handleToggleMatch = useCallback(({gameId,seasonId}: { gameId:string,seasonId:number}) => {
-        if (!render) return;
-        const willExpand = !expandedMatches.has(gameId);
+        if (!render?.nickname) return;
+        const willExpand = !expandedMatchesRef.current.has(gameId);
         setExpandedMatches((prev) => {
             const next = new Set(prev);
             if (next.has(gameId)) next.delete(gameId);
@@ -464,12 +468,12 @@ export default function Search() {
             return next;
         });
         if (willExpand) {
-            const existing = matchDetails[gameId];
+            const existing = matchDetailsRef.current[gameId];
             if (!existing || (!existing.data && !existing.loading)) {
                 void loadMatchDetail(gameId, render.nickname,seasonId);
             }
         }
-    }, [render, expandedMatches, matchDetails, loadMatchDetail]);
+    }, [render?.nickname, loadMatchDetail]);
 
     const handleSubmit: NonNullable<ComponentProps<"form">["onSubmit"]> = (event) => {
         event.preventDefault();
@@ -730,7 +734,8 @@ export default function Search() {
                                         data={gameData}
                                         expanded={expandedMatches.has(match.gameId)}
                                         detailState={matchDetails[match.gameId]}
-                                        onToggle={() => handleToggleMatch({gameId: match.gameId, seasonId: match.modeId == 3 ? render.seasonId : 0})}
+                                        onToggle={handleToggleMatch}
+                                        seasonId={match.modeId == 3 ? render.seasonId : 0}
                                         characters={characters}
                                         navigate={navigate}
                                     />

@@ -1,10 +1,10 @@
 import {useEffect, useRef, useState} from "react";
 import {invoke} from "@tauri-apps/api/core";
-import {useAtom, useAtomValue} from "jotai";
+import {useAtomValue} from "jotai";
 import {useTranslation} from "react-i18next";
 import {normalizeName, ProfileView} from "../components/profile";
 import type {PlayerStatsByName} from "../components/profile";
-import {CharacterBrief} from "../types/bser";
+import type {CharacterBrief, GameSnapshot} from "../types/bser";
 import type {CharacterUseStats, PlayerSummary} from "../types/search";
 import {injectAtom, snapshotAtom} from "../store";
 import {appSettingsAtom} from "../utils/settings";
@@ -23,10 +23,11 @@ const OVERVIEW_MODE = 3;
 
 export default function Overlay() {
     const {t} = useTranslation();
-    const [snapshot, _setSnapshot] = useAtom(snapshotAtom);
+    const snapshot = useAtomValue(snapshotAtom);
     const [statsByName, setStatsByName] = useState<PlayerStatsByName>({});
     const [charactersById, setCharactersById] = useState<Record<number, CharacterBrief>>({});
     const fetchedRef = useRef<Set<string>>(new Set());
+    const matchKeyRef = useRef<string | null>(null);
     const injected = useAtomValue(injectAtom);
     const settings = useAtomValue(appSettingsAtom);
 
@@ -49,18 +50,25 @@ export default function Overlay() {
         };
     }, []);
 
-    // 注入断开后清空已查询缓存，下一局重新拉取。
+    // 没有已保存对局时，注入断开才清空查询缓存；已保存对局要保留到下一局开始。
     useEffect(() => {
-        if (!injected) {
+        if (!injected && !snapshot) {
             fetchedRef.current.clear();
             setStatsByName({});
         }
-    }, [injected]);
+    }, [injected, snapshot]);
 
     // 对局玩家出现后，按昵称查询其档案常用英雄。每个昵称只查一次，
     // 分组并发查询：>8人时每3人一组，≤8人时每4人一组。
     useEffect(() => {
         if (!snapshot) return;
+        const matchKey = getMatchSnapshotKey(snapshot);
+        const isNewMatch = matchKeyRef.current !== matchKey;
+        if (isNewMatch) {
+            matchKeyRef.current = matchKey;
+            fetchedRef.current.clear();
+        }
+
         const names = Array.from(
             new Set(snapshot.raw.map((entry) => entry.name.trim()).filter((name) => name.length > 0)),
         );
@@ -69,7 +77,7 @@ export default function Overlay() {
 
         fresh.forEach((name) => fetchedRef.current.add(normalizeName(name)));
         setStatsByName((prev) => {
-            const next = {...prev};
+            const next = isNewMatch ? {} : {...prev};
             for (const name of fresh) next[normalizeName(name)] = {loading: true};
             return next;
         });
@@ -114,12 +122,23 @@ export default function Overlay() {
     return (
         <div className="h-full">
             <div className="h-full">
-                {!injected ? ( <div className="mt-52 text-center text-5xl text-gray-500">{t('overlay.waitingForGame')}</div>) : snapshot ? (
+                {snapshot ? (
                     <ProfileView snapshot={snapshot} statsByName={statsByName} charactersById={charactersById} settings={settings} />
+                ) : !injected ? (
+                    <div className="mt-52 text-center text-5xl text-gray-500">{t('overlay.waitingForGame')}</div>
                 ) : (
                     <div className="mt-52 text-center text-5xl text-gray-500">等待进入大厅获取数据...</div>
                 )}
             </div>
         </div>
     );
+}
+
+function getMatchSnapshotKey(snapshot: GameSnapshot) {
+    if (snapshot.last_game_id > 0) return `game:${snapshot.last_game_id}`;
+
+    return snapshot.raw
+        .filter((entry) => entry.name.trim().length > 0)
+        .map((entry) => `${entry.user_id}:${entry.team_id}:${entry.character_id}:${entry.name}`)
+        .join("|");
 }

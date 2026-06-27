@@ -22,6 +22,7 @@ use std::sync::{Arc, OnceLock};
 use parking_lot::RwLock;
 use rdev::Key;
 use tauri::{AppHandle, Emitter};
+use tokio::sync::oneshot;
 
 pub use shortcut::{combo_to_string, is_modifier, parse_shortcut, ShortcutError};
 
@@ -36,6 +37,8 @@ struct KeyboardHub {
 struct KeyboardState {
     /// 是否正在录制快捷键。
     recording: bool,
+    /// 等待本次录制结果的命令回调；None 表示使用事件模式。
+    recording_sender: Option<oneshot::Sender<String>>,
     /// 当前注册的 overlay 触发组合；`None` 表示未注册。
     overlay_combo: Option<Vec<Key>>,
     /// 当前处于按下状态的键（用于组合判断）。
@@ -50,6 +53,7 @@ pub fn init(app: AppHandle) {
         app,
         state: RwLock::new(KeyboardState {
             recording: false,
+            recording_sender: None,
             overlay_combo: None,
             pressed: HashSet::new(),
             overlay_visible: false,
@@ -68,15 +72,43 @@ pub fn init(app: AppHandle) {
 /// 开始录制下一次快捷键按下。
 pub fn start_recording() -> Result<(), String> {
     let hub = hub()?;
-    hub.state.write().recording = true;
+    let mut state = hub.state.write();
+    if state.recording {
+        return Err("shortcut recording already in progress".to_string());
+    }
+    state.recording = true;
+    state.recording_sender = None;
     log::info!("Shortcut recording started");
     Ok(())
+}
+
+/// 在后端录制下一次快捷键按下，并等待返回组合字符串。
+pub async fn record_shortcut() -> Result<String, String> {
+    let receiver = {
+        let hub = hub()?;
+        let mut state = hub.state.write();
+        if state.recording {
+            return Err("shortcut recording already in progress".to_string());
+        }
+
+        let (sender, receiver) = oneshot::channel();
+        state.recording = true;
+        state.recording_sender = Some(sender);
+        log::info!("Shortcut recording started with backend waiter");
+        receiver
+    };
+
+    receiver
+        .await
+        .map_err(|_| "shortcut recording cancelled".to_string())
 }
 
 /// 取消录制。
 pub fn cancel_recording() -> Result<(), String> {
     let hub = hub()?;
-    hub.state.write().recording = false;
+    let mut state = hub.state.write();
+    state.recording = false;
+    state.recording_sender = None;
     log::info!("Shortcut recording cancelled");
     Ok(())
 }
@@ -125,8 +157,15 @@ fn dispatch_event(event: &rdev::Event, hub: &KeyboardHub) {
         RecordingOutcome::None
     };
 
-    if let RecordingOutcome::Completed(combo_string) = recording_action {
+    if let RecordingOutcome::Completed {
+        combo_string,
+        recording_sender,
+    } = recording_action
+    {
         log::info!("Shortcut recorded: {}", combo_string);
+        if let Some(sender) = recording_sender {
+            let _ = sender.send(combo_string.clone());
+        }
         let _ = hub.app.emit("shortcut-recorded", combo_string);
         return;
     }
@@ -147,18 +186,19 @@ fn dispatch_event(event: &rdev::Event, hub: &KeyboardHub) {
         if let Err(e) = crate::overlay::window::set_overlay_visible(&hub.app, true) {
             log::error!("Failed to show overlay window: {}", e);
         }
-        let _ = hub.app.emit("overlay-show", ());
     } else if let Some(OverlayAction::Hide) = side_effect {
         if let Err(e) = crate::overlay::window::set_overlay_visible(&hub.app, false) {
             log::error!("Failed to hide overlay window: {}", e);
         }
-        let _ = hub.app.emit("overlay-hide", ());
     }
 }
 
 enum RecordingOutcome {
     None,
-    Completed(String),
+    Completed {
+        combo_string: String,
+        recording_sender: Option<oneshot::Sender<String>>,
+    },
 }
 
 fn try_complete_recording(key: Key, hub: &KeyboardHub) -> RecordingOutcome {
@@ -181,7 +221,11 @@ fn try_complete_recording(key: Key, hub: &KeyboardHub) -> RecordingOutcome {
     combo.push(key);
     state.recording = false;
     state.pressed.insert(key);
-    RecordingOutcome::Completed(combo_to_string(&combo))
+    let recording_sender = state.recording_sender.take();
+    RecordingOutcome::Completed {
+        combo_string: combo_to_string(&combo),
+        recording_sender,
+    }
 }
 
 enum OverlayAction {
@@ -232,6 +276,7 @@ mod tests {
     fn overlay_single_key_show_then_hide() {
         let mut state = KeyboardState {
             recording: false,
+            recording_sender: None,
             overlay_combo: Some(vec![Key::BackQuote]),
             pressed: HashSet::new(),
             overlay_visible: false,
@@ -254,6 +299,7 @@ mod tests {
     fn overlay_combo_requires_all_keys() {
         let mut state = KeyboardState {
             recording: false,
+            recording_sender: None,
             overlay_combo: Some(vec![Key::ControlLeft, Key::KeyO]),
             pressed: HashSet::new(),
             overlay_visible: false,
@@ -280,6 +326,7 @@ mod tests {
     fn overlay_repeat_press_does_not_double_show() {
         let mut state = KeyboardState {
             recording: false,
+            recording_sender: None,
             overlay_combo: Some(vec![Key::BackQuote]),
             pressed: HashSet::from([Key::BackQuote]),
             overlay_visible: true,

@@ -39,6 +39,7 @@ windows = { version = "0.62.2", features = [
     "Win32_Graphics_Gdi",
 ] }
 tauri-plugin-prevent-default = "5.0.0"
+tauri-plugin-global-shortcut = "2"
 regex = "1.12.4"
 rdev = "0.5"
 parking_lot = "0.12"

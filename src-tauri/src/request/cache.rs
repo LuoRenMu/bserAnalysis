@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
+const MAX_CACHE_ENTRIES: usize = 512;
+
 /// HTTP 响应元数据（用于条件请求）
 #[derive(Debug, Clone)]
 pub struct HttpMetadata {
@@ -37,14 +39,6 @@ impl CacheEntry {
         Instant::now() >= self.expires_at
     }
 
-    fn get(&self) -> Option<&str> {
-        if self.is_expired() {
-            None
-        } else {
-            Some(&self.data)
-        }
-    }
-
     fn metadata(&self) -> Option<&HttpMetadata> {
         self.http_metadata.as_ref()
     }
@@ -66,15 +60,21 @@ impl Cache {
 
     /// Get cached JSON string by key
     pub fn get(&self, key: &str) -> Option<String> {
-        let store = self.store.read().unwrap();
-        store
-            .get(key)
-            .and_then(|entry| entry.get().map(|s| s.to_string()))
+        let mut store = self.store.write().unwrap();
+        match store.get(key) {
+            Some(entry) if !entry.is_expired() => Some(entry.data.clone()),
+            Some(_) => {
+                store.remove(key);
+                None
+            }
+            None => None,
+        }
     }
 
     /// Set cached JSON string with TTL
     pub fn set(&self, key: String, data: String, ttl: Duration) {
         let mut store = self.store.write().unwrap();
+        Self::prepare_insert(&mut store, &key);
         store.insert(key, CacheEntry::new(data, ttl));
     }
 
@@ -87,13 +87,21 @@ impl Cache {
         metadata: HttpMetadata,
     ) {
         let mut store = self.store.write().unwrap();
+        Self::prepare_insert(&mut store, &key);
         store.insert(key, CacheEntry::with_metadata(data, ttl, metadata));
     }
 
     /// Get HTTP metadata for cached data
     pub fn get_metadata(&self, key: &str) -> Option<HttpMetadata> {
-        let store = self.store.read().unwrap();
-        store.get(key).and_then(|entry| entry.metadata().cloned())
+        let mut store = self.store.write().unwrap();
+        match store.get(key) {
+            Some(entry) if !entry.is_expired() => entry.metadata().cloned(),
+            Some(_) => {
+                store.remove(key);
+                None
+            }
+            None => None,
+        }
     }
 
     /// Remove cached data by key
@@ -127,6 +135,31 @@ impl Cache {
     /// Get current language
     pub fn current_language(&self) -> String {
         self.current_language.read().unwrap().clone()
+    }
+
+    fn prepare_insert(store: &mut HashMap<String, CacheEntry>, key: &str) {
+        Self::prune_expired(store);
+        if !store.contains_key(key) {
+            Self::evict_until_below_capacity(store);
+        }
+    }
+
+    fn prune_expired(store: &mut HashMap<String, CacheEntry>) {
+        let now = Instant::now();
+        store.retain(|_, entry| entry.expires_at > now);
+    }
+
+    fn evict_until_below_capacity(store: &mut HashMap<String, CacheEntry>) {
+        while store.len() >= MAX_CACHE_ENTRIES {
+            let Some(key) = store
+                .iter()
+                .min_by_key(|(_, entry)| entry.expires_at)
+                .map(|(key, _)| key.clone())
+            else {
+                break;
+            };
+            store.remove(&key);
+        }
     }
 }
 
@@ -192,6 +225,36 @@ mod tests {
 
         std::thread::sleep(Duration::from_millis(20));
         assert_eq!(cache.get("key"), None);
+    }
+
+    #[test]
+    fn test_expired_entry_is_removed_on_read() {
+        let cache = Cache::new();
+
+        cache.set(
+            "key".to_string(),
+            "value".to_string(),
+            Duration::from_millis(10),
+        );
+
+        std::thread::sleep(Duration::from_millis(20));
+        assert_eq!(cache.get("key"), None);
+        assert!(!cache.store.read().unwrap().contains_key("key"));
+    }
+
+    #[test]
+    fn test_cache_eviction_caps_entry_count() {
+        let cache = Cache::new();
+
+        for index in 0..(MAX_CACHE_ENTRIES + 10) {
+            cache.set(
+                format!("key-{index}"),
+                "value".to_string(),
+                Duration::from_secs(60),
+            );
+        }
+
+        assert!(cache.store.read().unwrap().len() <= MAX_CACHE_ENTRIES);
     }
 
     #[test]

@@ -147,10 +147,14 @@ impl RequestManager {
     pub async fn call(&self, api: &ApiRequest) -> Result<ResponseBytes> {
         let full_url = api.full_url();
 
-        let key_lock = self.key_lock(&api.url);
-        let _guard = key_lock.lock().await;
+        let key_lock = self.key_lock(&full_url);
+        let guard = key_lock.lock().await;
 
-        let response = self.execute_with_retry(api).await?;
+        let response = self.execute_with_retry(api).await;
+        drop(guard);
+        self.cleanup_lock(&full_url, &key_lock);
+
+        let response = response?;
         // 304 Not Modified 也是成功的响应（用于条件请求）
         if !api.accept_error_status && !response.is_success_or_not_modified() {
             log::error!("{} {full_url} → HTTP {}", api.method, response.status);
@@ -283,6 +287,21 @@ impl RequestManager {
             .entry(key.to_string())
             .or_insert_with(|| Arc::new(AsyncMutex::new(())))
             .clone()
+    }
+
+    fn cleanup_lock(&self, key: &str, lock: &Arc<AsyncMutex<()>>) {
+        if Arc::strong_count(lock) != 2 {
+            return;
+        }
+
+        let mut locks = self.locks.lock().expect("request lock map poisoned");
+        if locks
+            .get(key)
+            .map(|current| Arc::ptr_eq(current, lock))
+            .unwrap_or(false)
+        {
+            locks.remove(key);
+        }
     }
 }
 

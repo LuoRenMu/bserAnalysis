@@ -335,8 +335,10 @@ pub async fn assemble_player_overview(
         mode
     };
 
-    let profile = EternalReturnDakGgApi::get_profile(nickname).await?;
-    let characters = EternalReturnDakGgApi::get_characters().await?;
+    let (profile, characters) = tokio::try_join!(
+        EternalReturnDakGgApi::get_profile(nickname),
+        EternalReturnDakGgApi::get_characters(),
+    )?;
 
     let season_overviews = &profile.player_season_overviews;
     let total_play = season_overviews
@@ -375,9 +377,11 @@ pub async fn assemble_player_profile(
         mode
     };
 
-    let profile = EternalReturnDakGgApi::get_profile(nickname).await?;
-    let characters = EternalReturnDakGgApi::get_characters().await?;
-    let tiers = EternalReturnDakGgApi::get_tiers().await?;
+    let (profile, characters, tiers) = tokio::try_join!(
+        EternalReturnDakGgApi::get_profile(nickname),
+        EternalReturnDakGgApi::get_characters(),
+        EternalReturnDakGgApi::get_tiers(),
+    )?;
 
     let season_overviews = &profile.player_season_overviews;
 
@@ -613,14 +617,16 @@ pub async fn fetch_game_reference() -> Result<GameReference> {
             .infusions
             .iter()
             .map(|infusion| {
-                let (name, image_url,tooltip) = match infusion.product_type.as_str() {
-                    "EquipItemSelector" => {
-                        ("装备选择器".to_string(), CDN_PLACEHOLDER_URL.to_string(),"上古时代的宝贝开始选择啦".to_string())
-                    }
+                let (name, image_url, tooltip) = match infusion.product_type.as_str() {
+                    "EquipItemSelector" => (
+                        "装备选择器".to_string(),
+                        CDN_PLACEHOLDER_URL.to_string(),
+                        "上古时代的宝贝开始选择啦".to_string(),
+                    ),
                     "EquipItemMythicSelector" => (
                         "神话装备选择器".to_string(),
                         CDN_PLACEHOLDER_URL.to_string(),
-                        "上古时代的宝贝开始选择啦".to_string()
+                        "上古时代的宝贝开始选择啦".to_string(),
                     ),
                     _ => resolve_infusion_product(infusion.product_id, &traits, &items, &tacticals),
                 };
@@ -1195,7 +1201,7 @@ fn trait_pick(
         bg_url: String::new(),
         pick_rate: rate(count, total),
         win_rate: rate(win, count),
-        tooltip: skill.map(|s| s.tooltip.clone()).unwrap_or_default()
+        tooltip: skill.map(|s| s.tooltip.clone()).unwrap_or_default(),
     }
 }
 
@@ -1207,7 +1213,7 @@ fn infusion_pick(
     win: i64,
     refs: &AnalysisRefs,
 ) -> PickRender {
-    let (name, icon_url,tooltip) =
+    let (name, icon_url, tooltip) =
         resolve_infusion_product(product_id, refs.traits, refs.items, refs.tacticals);
     PickRender {
         id: product_id,
@@ -1216,7 +1222,7 @@ fn infusion_pick(
         bg_url: String::new(),
         pick_rate: rate(count, total),
         win_rate: rate(win, count),
-        tooltip
+        tooltip,
     }
 }
 
@@ -1226,17 +1232,33 @@ fn resolve_infusion_product(
     traits: &DakGgTraitSkillsResponse,
     items: &DakGgItemsResponse,
     tacticals: &DakGgTacticalSkillResponse,
-) -> (String, String,String) {
+) -> (String, String, String) {
     if let Some(skill) = traits.get_trait_skill_by_id(product_id) {
-        return (skill.name.clone(), cdn_url(&skill.image_url),skill.tooltip.clone());
+        return (
+            skill.name.clone(),
+            cdn_url(&skill.image_url),
+            skill.tooltip.clone(),
+        );
     }
     if let Some(item) = items.get_item_by_id(product_id) {
-        return (item.name.clone(), cdn_url(&item.image_url),item.tooltip.clone());
+        return (
+            item.name.clone(),
+            cdn_url(&item.image_url),
+            item.tooltip.clone(),
+        );
     }
     if let Some(skill) = tacticals.get_tactical_skill(product_id) {
-        return (skill.name.clone(), cdn_url(&skill.image_url),skill.tooltip.clone());
+        return (
+            skill.name.clone(),
+            cdn_url(&skill.image_url),
+            skill.tooltip.clone(),
+        );
     }
-    (String::new(), CDN_PLACEHOLDER_URL.to_string(),"".to_string())
+    (
+        String::new(),
+        CDN_PLACEHOLDER_URL.to_string(),
+        "".to_string(),
+    )
 }
 
 /// 物品品级字符串 → 序号（用于品级背景图）。

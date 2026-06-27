@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { CharacterBrief } from "../../types/bser";
@@ -86,12 +86,13 @@ function InfusionRow({ raw, data }: { raw: string; data: GameData | null }) {
     );
 }
 
-export default function MatchCard({
+function MatchCard({
     match,
     data,
     expanded,
     detailState,
     onToggle,
+    seasonId,
     characters,
     navigate,
 }: {
@@ -99,11 +100,14 @@ export default function MatchCard({
     data: GameData | null;
     expanded: boolean;
     detailState: MatchDetailState | undefined;
-    onToggle: () => void;
+    onToggle: (payload: { gameId: string; seasonId: number }) => void;
+    seasonId: number;
     characters: CharacterBrief[];
     navigate: NavigateFunction;
 }) {
     const { t } = useTranslation();
+    const handleToggle = () => onToggle({ gameId: match.gameId, seasonId });
+
     return (
         <article style={{minWidth: "700px"}}
                  className="relative mt-5 rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
@@ -117,11 +121,11 @@ export default function MatchCard({
                 role="button"
                 tabIndex={0}
                 aria-expanded={expanded}
-                onClick={onToggle}
+                onClick={handleToggle}
                 onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
-                        onToggle();
+                        handleToggle();
                     }
                 }}
                 className="grid cursor-pointer grid-cols-[74px_76px_64px_minmax(220px,1fr)_96px_20px] items-center gap-3 rounded-lg px-6 py-4 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800/30 max-xl:grid-cols-[64px_64px_56px_minmax(150px,1fr)_96px_20px] max-xl:gap-2 max-xl:px-4">
@@ -211,3 +215,5 @@ export default function MatchCard({
         </article>
     );
 }
+
+export default memo(MatchCard);

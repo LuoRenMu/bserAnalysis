@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   characterStatsResultAtom,
@@ -33,7 +33,7 @@ function TierBadge({ tier }: { tier: string }) {
   );
 }
 
-function CharacterStatsRow({ item }: { item: CharacterStatsItem }) {
+const CharacterStatsRow = memo(function CharacterStatsRow({ item }: { item: CharacterStatsItem }) {
   return (
     <div className="grid grid-cols-[80px_minmax(120px,1fr)_70px_80px_70px_80px_80px_80px_80px_90px_90px_80px] items-center gap-3 border-t border-neutral-200 px-4 py-3 text-xs dark:border-neutral-800">
       <div className="flex items-center gap-2">
@@ -96,7 +96,7 @@ function CharacterStatsRow({ item }: { item: CharacterStatsItem }) {
       <div className="text-right tabular-nums text-neutral-500">{item.pickRate.toFixed(1)}%</div>
     </div>
   );
-}
+});
 
 export default function CharacterStats() {
   const result = useAtomValue(characterStatsResultAtom);

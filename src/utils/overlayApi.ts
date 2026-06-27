@@ -70,6 +70,14 @@ export async function startShortcutRecording(): Promise<void> {
 }
 
 /**
+ * Records the next shortcut press in the backend global keyboard listener and
+ * resolves with the combo string.
+ */
+export async function recordShortcut(): Promise<string> {
+  return await invoke<string>("record_shortcut");
+}
+
+/**
  * Cancels an in-progress shortcut recording.
  */
 export async function cancelShortcutRecording(): Promise<void> {

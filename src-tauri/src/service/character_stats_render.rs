@@ -4,6 +4,7 @@ use crate::request::{
     types::{DakGgRank, DakGgTeamMode, MatchingMode},
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -71,34 +72,38 @@ pub async fn fetch_character_stats(
         _ => None,
     });
 
-    let response = EternalReturnDakGgApi::get_character_stats(
-        team_mode_enum,
-        matching_mode_enum,
-        tier_enum,
-        dt,
-        patch,
-    )
-    .await?;
+    let (response, characters_resp, weapons_resp) = tokio::try_join!(
+        EternalReturnDakGgApi::get_character_stats(
+            team_mode_enum,
+            matching_mode_enum,
+            tier_enum,
+            dt,
+            patch,
+        ),
+        EternalReturnDakGgApi::get_characters(),
+        EternalReturnDakGgApi::get_weapons(),
+    )?;
 
     let snapshot = response.character_stat_snapshot;
-    let characters_resp = EternalReturnDakGgApi::get_characters().await?;
-    let weapons_resp = EternalReturnDakGgApi::get_weapons().await?;
-
+    let characters_by_id = characters_resp
+        .characters
+        .iter()
+        .map(|character| (character.id, character))
+        .collect::<HashMap<_, _>>();
+    let weapons_by_id = weapons_resp
+        .masteries
+        .iter()
+        .map(|weapon| (weapon.id, weapon))
+        .collect::<HashMap<_, _>>();
     let mut items = Vec::new();
     let total_count: i32 = snapshot.character_stats.iter().map(|cs| cs.count).sum();
 
     for character_stat in snapshot.character_stats {
-        let character = characters_resp
-            .characters
-            .iter()
-            .find(|c| c.id == character_stat.key as i64);
+        let character = characters_by_id.get(&(character_stat.key as i64)).copied();
 
         if let Some(character) = character {
             for weapon_stat in character_stat.weapon_stats {
-                let weapon = weapons_resp
-                    .masteries
-                    .iter()
-                    .find(|w| w.id == weapon_stat.key);
+                let weapon = weapons_by_id.get(&weapon_stat.key).copied();
 
                 if let Some(weapon) = weapon {
                     let match_count = weapon_stat.count;

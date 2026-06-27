@@ -122,11 +122,12 @@ impl Request {
     }
 
     fn cache_key(&self) -> String {
+        let base = format!("{}:{}", self.method, self.full_url());
         if self.language_dependent {
             let lang = crate::settings::get_language();
-            format!("{}:{}", lang, self.url)
+            format!("{lang}:{base}")
         } else {
-            self.url.clone()
+            base
         }
     }
 
@@ -220,14 +221,35 @@ impl HttpClient {
             return Ok(serde_json::from_str(&cached_json)?);
         }
 
-        // Cache miss - fetch from network
+        let lock = self.key_lock(&cache_key);
+        let guard = lock.lock().await;
+        let result = self.fetch_cached_locked(request, &cache_key, ttl).await;
+        drop(guard);
+        self.cleanup_lock(&cache_key, &lock);
+        result
+    }
+
+    async fn fetch_cached_locked<T>(
+        &self,
+        request: &Request,
+        cache_key: &str,
+        ttl: Duration,
+    ) -> Result<T>
+    where
+        T: DeserializeOwned,
+    {
+        if let Some(cached_json) = self.cache.get(cache_key) {
+            log::debug!("Cache hit after wait for {}", request.full_url());
+            return Ok(serde_json::from_str(&cached_json)?);
+        }
+
         let api = request.to_api_request();
-        let response = self.execute_with_lock(&api).await?;
+        let response = REQUEST_MANAGER.call(&api).await?;
 
         // Store raw JSON string in cache
         let json_str = String::from_utf8(response.bytes.clone())
             .map_err(|_| RequestError::UnexpectedDakGgResponse)?;
-        self.cache.set(cache_key, json_str, ttl);
+        self.cache.set(cache_key.to_string(), json_str, ttl);
 
         // Deserialize and return
         Ok(serde_json::from_slice(&response.bytes)?)
@@ -239,10 +261,27 @@ impl HttpClient {
     {
         let cache_key = request.cache_key();
 
-        // Check cache and metadata
-        if let Some(cached_json) = self.cache.get(&cache_key) {
-            if let Some(metadata) = self.cache.get_metadata(&cache_key) {
-                // Build conditional request
+        let lock = self.key_lock(&cache_key);
+        let guard = lock.lock().await;
+        let result = self
+            .fetch_conditional_locked(request, &cache_key, ttl)
+            .await;
+        drop(guard);
+        self.cleanup_lock(&cache_key, &lock);
+        result
+    }
+
+    async fn fetch_conditional_locked<T>(
+        &self,
+        request: &Request,
+        cache_key: &str,
+        ttl: Duration,
+    ) -> Result<T>
+    where
+        T: DeserializeOwned,
+    {
+        if let Some(cached_json) = self.cache.get(cache_key) {
+            if let Some(metadata) = self.cache.get_metadata(cache_key) {
                 let mut api = request.to_api_request();
                 if let Some(etag) = &metadata.etag {
                     api.headers
@@ -253,20 +292,22 @@ impl HttpClient {
                         .insert("If-Modified-Since".to_string(), last_modified.clone());
                 }
 
-                let response = self.execute_with_lock(&api).await?;
+                let response = REQUEST_MANAGER.call(&api).await?;
 
-                // 304 Not Modified - refresh cache TTL and return cached data
                 if response.is_not_modified() {
                     log::debug!(
-                        "← 304 Not Modified, using cached data for {}",
+                        "304 Not Modified, using cached data for {}",
                         request.full_url()
                     );
-                    self.cache
-                        .set_with_metadata(cache_key, cached_json.clone(), ttl, metadata);
+                    self.cache.set_with_metadata(
+                        cache_key.to_string(),
+                        cached_json.clone(),
+                        ttl,
+                        metadata,
+                    );
                     return Ok(serde_json::from_str(&cached_json)?);
                 }
 
-                // 200 OK - data updated, parse and cache new data
                 if response.is_success() {
                     let json_str = String::from_utf8(response.bytes.clone())
                         .map_err(|_| RequestError::UnexpectedDakGgResponse)?;
@@ -274,21 +315,23 @@ impl HttpClient {
                         etag: response.etag,
                         last_modified: response.last_modified,
                     };
-                    self.cache
-                        .set_with_metadata(cache_key, json_str, ttl, new_metadata);
+                    self.cache.set_with_metadata(
+                        cache_key.to_string(),
+                        json_str,
+                        ttl,
+                        new_metadata,
+                    );
                     return Ok(serde_json::from_slice(&response.bytes)?);
                 }
 
                 return Err(response.status_error(&api));
             } else {
-                // Cache hit but no metadata - return cached data
                 return Ok(serde_json::from_str(&cached_json)?);
             }
         }
 
-        // Cache miss - first request
         let api = request.to_api_request();
-        let response = self.execute_with_lock(&api).await?;
+        let response = REQUEST_MANAGER.call(&api).await?;
 
         if !response.is_success() {
             return Err(response.status_error(&api));
@@ -301,15 +344,19 @@ impl HttpClient {
             last_modified: response.last_modified,
         };
         self.cache
-            .set_with_metadata(cache_key, json_str, ttl, metadata);
+            .set_with_metadata(cache_key.to_string(), json_str, ttl, metadata);
 
         Ok(serde_json::from_slice(&response.bytes)?)
     }
 
     async fn execute_with_lock(&self, api: &ApiRequest) -> Result<ResponseBytes> {
-        let lock = self.key_lock(&api.url);
-        let _guard = lock.lock().await;
-        REQUEST_MANAGER.call(api).await
+        let key = api.full_url();
+        let lock = self.key_lock(&key);
+        let guard = lock.lock().await;
+        let result = REQUEST_MANAGER.call(api).await;
+        drop(guard);
+        self.cleanup_lock(&key, &lock);
+        result
     }
 
     fn key_lock(&self, key: &str) -> Arc<AsyncMutex<()>> {
@@ -318,6 +365,21 @@ impl HttpClient {
             .entry(key.to_string())
             .or_insert_with(|| Arc::new(AsyncMutex::new(())))
             .clone()
+    }
+
+    fn cleanup_lock(&self, key: &str, lock: &Arc<AsyncMutex<()>>) {
+        if Arc::strong_count(lock) != 2 {
+            return;
+        }
+
+        let mut locks = self.locks.lock().expect("http client lock map poisoned");
+        if locks
+            .get(key)
+            .map(|current| Arc::ptr_eq(current, lock))
+            .unwrap_or(false)
+        {
+            locks.remove(key);
+        }
     }
 }
 

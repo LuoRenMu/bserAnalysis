@@ -35,6 +35,7 @@ fn main() {
         )
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .manage(plugin_state)
         .manage(settings_manager)
         .setup(move |app| {
@@ -45,31 +46,9 @@ fn main() {
                 bseranalysis_lib::overlay::OverlayManager::new(app_handle.clone(), plugin_handle);
             app.manage(overlay_manager);
 
-            // 初始化键盘中心（rdev 监听线程）
-            bseranalysis_lib::keyboard::init(app_handle.clone());
-
             // 创建隐藏的 overlay 窗口
             if let Err(e) = bseranalysis_lib::overlay::create_overlay_window(&app_handle) {
                 log::error!("Failed to create overlay window: {}", e);
-            }
-
-            // 从已保存的设置中注册 overlay 快捷键
-            let settings_manager = app.state::<bseranalysis_lib::settings::SettingsManager>();
-            if let Ok(settings) = settings_manager.load(&app_handle) {
-                match bseranalysis_lib::keyboard::parse_shortcut(&settings.overlay_shortcut) {
-                    Ok(combo) => {
-                        if let Err(e) = bseranalysis_lib::keyboard::set_overlay_combo(combo) {
-                            log::error!("Failed to register overlay shortcut: {}", e);
-                        }
-                    }
-                    Err(e) => {
-                        log::warn!(
-                            "Saved overlay shortcut '{}' invalid: {}",
-                            settings.overlay_shortcut,
-                            e
-                        );
-                    }
-                }
             }
 
             Ok(())
@@ -110,6 +89,7 @@ fn main() {
             bseranalysis_lib::command::overlay::try_take_overlay_mock,
             bseranalysis_lib::command::overlay::emit_overlay_opacity,
             bseranalysis_lib::command::keyboard::start_shortcut_recording,
+            bseranalysis_lib::command::keyboard::record_shortcut,
             bseranalysis_lib::command::keyboard::cancel_shortcut_recording,
             bseranalysis_lib::command::keyboard::is_shortcut_recording,
             bseranalysis_lib::command::keyboard::register_overlay_shortcut,

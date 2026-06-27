@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -35,7 +35,7 @@ const SORT_TYPE_OPTIONS = [
 const GRID =
   "grid grid-cols-[60px_minmax(180px,1fr)_110px_72px_72px_72px_86px_86px_86px_100px] items-center gap-2";
 
-function CharacterLeaderboardTableRow({
+const CharacterLeaderboardTableRow = memo(function CharacterLeaderboardTableRow({
   row,
   characterImageUrl,
   sortType,
@@ -79,7 +79,7 @@ function CharacterLeaderboardTableRow({
       <div className="text-right tabular-nums text-neutral-500">{row.avgDamage.toLocaleString()}</div>
     </div>
   );
-}
+});
 
 export default function CharacterLeaderboard() {
   const [searchParams] = useSearchParams();
@@ -174,11 +174,11 @@ export default function CharacterLeaderboard() {
     void fetchCharacterLeaderboard({ page });
   };
 
-  const handlePlayerSelect = (name: string) => {
+  const handlePlayerSelect = useCallback((name: string) => {
     setSearchQuery(name);
     void searchPlayer({ nickname: name, page: 1 });
     navigate("/search");
-  };
+  }, [navigate, searchPlayer, setSearchQuery]);
 
   return (
     <PageShell>

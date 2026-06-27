@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { type UnlistenFn } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
@@ -11,12 +11,13 @@ import {
     listenOverlayEvents,
     listenOverlayMock,
     listenOverlayOpacity,
+    isOverlayWindowVisible,
     tryTakeOverlayMock,
 } from "../utils/overlayApi";
 import { accentForRank } from "../utils/convert.ts";
 
 const BASELINE_WIDTH = 1056;
-const BASELINE_HEIGHT = 756;
+const BASELINE_HEIGHT = 920;
 const TOTAL_MOCK_PLAYERS = 24;
 const OVERVIEW_MODE = 3;
 
@@ -57,15 +58,24 @@ export default function GameOverlay() {
     const [scale, setScale] = useState(1);
     const [bgOpacity, setBgOpacity] = useState(settings.overlayBackgroundOpacity);
     const [mockRequested, setMockRequested] = useState(false);
+    const [mockLoading, setMockLoading] = useState(false);
+    const [pageVisible, setPageVisible] = useState(false);
     const charactersByIdRef = useRef<Record<number, CharacterBrief>>({});
     charactersByIdRef.current = charactersById;
+    const characterIdByNameRef = useRef<Record<string, number>>({});
     const boundPlayerRef = useRef(settings.boundPlayerName);
     boundPlayerRef.current = settings.boundPlayerName;
+    const snapshotRef = useRef<GameSnapshot | null>(null);
+    snapshotRef.current = snapshot;
 
     const applyMockSnapshot = async () => {
         const name = boundPlayerRef.current.trim();
-        if (!name) return;
+        if (!name) {
+            setMockLoading(false);
+            return;
+        }
         mockModeRef.current = true;
+        setMockLoading(true);
         try {
             const profile = await invoke<PlayerProfileResponse>("fetch_player_profile", {
                 nickname: name,
@@ -83,12 +93,7 @@ export default function GameOverlay() {
             };
 
             const topCharIds = (profile.characters ?? [])
-                .map((c) => {
-                    const brief = Object.values(charactersByIdRef.current).find(
-                        (b) => b.name === c.characterName,
-                    );
-                    return brief?.id ?? 0;
-                })
+                .map((c) => characterIdByNameRef.current[c.characterName] ?? 0)
                 .filter((id) => id > 0);
 
             const pp = 3;
@@ -135,9 +140,12 @@ export default function GameOverlay() {
             }
 
             setStatsByName(stats);
+            snapshotRef.current = snap;
             setSnapshot(snap);
         } catch (error) {
             console.error("applyMockSnapshot failed:", error);
+        } finally {
+            setMockLoading(false);
         }
     };
     const applyMockRef = useRef(applyMockSnapshot);
@@ -174,7 +182,12 @@ export default function GameOverlay() {
                 const list = await invoke<CharacterBrief[]>("fetch_characters");
                 if (cancelled) return;
                 const map: Record<number, CharacterBrief> = {};
-                for (const c of list) map[c.id] = c;
+                const nameMap: Record<string, number> = {};
+                for (const c of list) {
+                    map[c.id] = c;
+                    nameMap[c.name] = c.id;
+                }
+                characterIdByNameRef.current = nameMap;
                 setCharactersById(map);
             } catch (error) {
                 console.error("fetch_characters failed:", error);
@@ -190,9 +203,23 @@ export default function GameOverlay() {
             try {
                 const pending = await tryTakeOverlayMock();
                 if (cancelled) return;
-                if (pending) setMockRequested(true);
+                if (pending) {
+                    setPageVisible(true);
+                    setMockLoading(true);
+                    setMockRequested(true);
+                }
             } catch { /* ignore */ }
         })();
+        return () => { cancelled = true; };
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        void isOverlayWindowVisible()
+            .then((visible) => {
+                if (!cancelled) setPageVisible(visible);
+            })
+            .catch(() => {});
         return () => { cancelled = true; };
     }, []);
 
@@ -220,8 +247,9 @@ export default function GameOverlay() {
 
             unlistenOverlay = await listenOverlayEvents(
                 () => {
+                    setPageVisible(true);
                     mockModeRef.current = false;
-                    fetchedRef.current.clear();
+                    if (snapshotRef.current) return;
                     void invoke<GameSnapshot>("fetch")
                         .then((snap) => {
                             if (cancelled) return;
@@ -229,11 +257,15 @@ export default function GameOverlay() {
                         })
                         .catch((e) => console.error("fetch on show failed:", e));
                 },
-                () => {},
+                () => {
+                    setPageVisible(false);
+                },
             );
 
             unlistenMock = await listenOverlayMock(() => {
                 if (cancelled) return;
+                setPageVisible(true);
+                setMockLoading(true);
                 void applyMockRef.current();
             });
 
@@ -326,8 +358,64 @@ export default function GameOverlay() {
         })();
     }, [snapshot]);
 
-    if (!snapshot) {
+    const snapshotView = useMemo(() => {
+        if (!snapshot) return null;
+        const players = snapshot.raw
+            .slice(0, Math.min(snapshot.entry_count, maxPlayersForTeamMode(snapshot.matching_team_mode)))
+            .filter((player) => player.name.trim().length > 0);
+        const myPlayer = snapshot.raw.find((player) => player.name === snapshot.nickname);
+
+        return {
+            players,
+            myTeamId: myPlayer?.team_id,
+            activeCount: players.length,
+            columns: columnsForTeamMode(snapshot.matching_team_mode),
+            rows: rowsForTeamMode(snapshot.matching_team_mode),
+        };
+    }, [snapshot]);
+
+    if (mockLoading || !snapshot || !snapshotView) {
         return (
+            <OverlayVisibility visible={pageVisible}>
+                <div className="flex h-screen w-screen items-center justify-center overflow-hidden">
+                    <div
+                        style={{
+                            width: BASELINE_WIDTH,
+                            height: BASELINE_HEIGHT,
+                            transform: `scale(${scale})`,
+                            transformOrigin: "center center",
+                        }}
+                        className="flex items-center justify-center"
+                    >
+                        <div
+                            className="rounded-lg px-6 py-4 backdrop-blur-md"
+                            style={{ backgroundColor: `rgba(0, 0, 0, ${bgOpacity})` }}
+                        >
+                            <div className="flex items-center gap-3 text-sm text-white/80">
+                                {mockLoading && (
+                                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white/80" />
+                                )}
+                                <span>
+                                    {mockLoading ? t("common.loading") : t("overlay.waitingForGame")}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </OverlayVisibility>
+        );
+    }
+
+    const { players, myTeamId, activeCount, columns, rows } = snapshotView;
+    const gridClassName =
+        columns === 1
+            ? "grid-cols-1"
+            : columns === 3
+                ? "grid-cols-3"
+                : "grid-cols-4";
+
+    return (
+        <OverlayVisibility visible={pageVisible}>
             <div className="flex h-screen w-screen items-center justify-center overflow-hidden">
                 <div
                     style={{
@@ -335,84 +423,84 @@ export default function GameOverlay() {
                         height: BASELINE_HEIGHT,
                         transform: `scale(${scale})`,
                         transformOrigin: "center center",
+                        backgroundColor: `rgba(0, 0, 0, ${bgOpacity})`,
                     }}
-                    className="flex items-center justify-center"
+                    className="flex flex-col overflow-hidden rounded-2xl p-2 shadow-2xl backdrop-blur-xl"
                 >
-                    <div
-                        className="rounded-lg px-6 py-4 backdrop-blur-md"
-                        style={{ backgroundColor: `rgba(0, 0, 0, ${bgOpacity})` }}
-                    >
-                        <div className="text-sm text-white/80">{t("overlay.waitingForGame")}</div>
+                    <div className="flex shrink-0 items-center gap-2 border-b border-white/10 px-1 pb-1.5">
+                        <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+                        <span className="text-xs font-semibold text-white">{t("overlay.title")}</span>
+                        <span className="ml-auto text-[10px] text-white/40">
+                            {activeCount}P
+                        </span>
+                    </div>
+
+                    <div className="flex min-h-0 flex-1 flex-col pt-1.5">
+                        <SectionLabel text={`${t("overlay.enemies")} (${players.length})`} />
+                        <div
+                            className={`grid min-h-0 flex-1 ${gridClassName} gap-1 overflow-hidden`}
+                            style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}
+                        >
+                            {players.map((player) => (
+                                <PlayerCard
+                                    key={`${player.user_id}-${player.name}-${player.team_id}`}
+                                    player={player}
+                                    character={charactersById[player.character_id]}
+                                    stats={
+                                        statsByName[normalizeName(player.name)] ?? {
+                                            loading: true,
+                                        }
+                                    }
+                                    variant={playerVariant(player, snapshot.nickname, myTeamId)}
+                                />
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
-        );
-    }
+        </OverlayVisibility>
+    );
+}
 
-    const myPlayer = snapshot.raw.find((p) => p.name === snapshot.nickname);
-    const enemies = snapshot.raw.slice(1, snapshot.entry_count);
+function maxPlayersForTeamMode(teamMode: number) {
+    if (teamMode === 4) return 8;
+    if (teamMode === 3) return 24;
+    return 24;
+}
 
+function columnsForTeamMode(teamMode: number) {
+    if (teamMode === 4) return 1;
+    if (teamMode === 3) return 3;
+    return 4;
+}
+
+function rowsForTeamMode(teamMode: number) {
+    const maxPlayers = maxPlayersForTeamMode(teamMode);
+    return Math.ceil(maxPlayers / columnsForTeamMode(teamMode));
+}
+
+function playerVariant(
+    player: PlayerEntry,
+    nickname: string,
+    myTeamId: number | undefined,
+): "you" | "team" | "enemy" {
+    if (player.name === nickname) return "you";
+    if (myTeamId !== undefined && player.team_id === myTeamId) return "team";
+    return "enemy";
+}
+
+function OverlayVisibility({ visible, children }: { visible: boolean; children: ReactNode }) {
     return (
-        <div className="flex h-screen w-screen items-center justify-center overflow-hidden">
-            <div
-                style={{
-                    width: BASELINE_WIDTH,
-                    height: BASELINE_HEIGHT,
-                    transform: `scale(${scale})`,
-                    transformOrigin: "center center",
-                    backgroundColor: `rgba(0, 0, 0, ${bgOpacity})`,
-                }}
-                className="flex flex-col overflow-hidden rounded-2xl p-2 shadow-2xl backdrop-blur-xl"
-            >
-                <div className="flex shrink-0 items-center gap-2 border-b border-white/10 px-1 pb-1.5">
-                    <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-                    <span className="text-xs font-semibold text-white">{t("overlay.title")}</span>
-                    <span className="ml-auto text-[10px] text-white/40">
-                        {snapshot.raw.filter((p) => p.name.trim().length > 0).length}P
-                    </span>
-                </div>
-
-                <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden pt-1.5">
-                    {myPlayer && (
-                        <div className="shrink-0">
-                            <SectionLabel text={t("overlay.you")} />
-                            <PlayerCard
-                                player={myPlayer}
-                                character={charactersById[myPlayer.character_id]}
-                                stats={
-                                    statsByName[normalizeName(myPlayer.name)] ?? {
-                                        loading: true,
-                                    }
-                                }
-                                variant="you"
-                            />
-                        </div>
-                    )}
-
-                    {enemies.length > 0 && (
-                        <div className="flex min-h-0 flex-1 flex-col">
-                            <SectionLabel
-                                text={`${t("overlay.enemies")} (${enemies.length})`}
-                            />
-                            <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-4 gap-1 overflow-hidden">
-                                {enemies.map((p) => (
-                                    <PlayerCard
-                                        key={p.user_id}
-                                        player={p}
-                                        character={charactersById[p.character_id]}
-                                        stats={
-                                            statsByName[normalizeName(p.name)] ?? {
-                                                loading: true,
-                                            }
-                                        }
-                                        variant="enemy"
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
+        <div
+            aria-hidden={!visible}
+            className="h-screen w-screen overflow-hidden"
+            style={{
+                opacity: visible ? 1 : 0,
+                pointerEvents: "none",
+                visibility: visible ? "visible" : "hidden",
+            }}
+        >
+            {children}
         </div>
     );
 }
@@ -656,7 +744,7 @@ function PlayerCard({
     const charFont = isYou ? 9 : 8;
 
     return (
-        <div className={`rounded-md px-2 py-1.5 ${containerCls}`}>
+        <div className={`flex h-full min-h-0 flex-col overflow-hidden rounded-md px-2 py-1.5 ${containerCls}`}>
             <div className="flex items-center gap-1.5">
                 {character?.imageUrl && (
                     <img

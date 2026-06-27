@@ -6,6 +6,12 @@ pub async fn start_shortcut_recording() -> Result<(), String> {
     keyboard::start_recording()
 }
 
+/// 后端录制下一次快捷键按下，并直接返回组合字符串。
+#[tauri::command]
+pub async fn record_shortcut() -> Result<String, String> {
+    keyboard::record_shortcut().await
+}
+
 /// 取消录制。
 #[tauri::command]
 pub async fn cancel_shortcut_recording() -> Result<(), String> {

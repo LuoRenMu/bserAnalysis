@@ -65,7 +65,7 @@ export function useInjection() {
         void (async () => {
             unlisten = await listenOverlayDataUpdated<GameSnapshot>((snap) => {
                 if (cancelled) return;
-                if (snap.nickname.trim().length > 0) {
+                if (isStorableMatchSnapshot(snap)) {
                     setSnapshot(snap);
                 }
             });
@@ -121,4 +121,14 @@ export function useInjection() {
 
         return () => clearInterval(id);
     }, [injectEnabled, injected, setInjected, setInjectEnabled, addErrorNotification]);
+}
+
+function isStorableMatchSnapshot(snapshot: GameSnapshot) {
+    return (
+        snapshot.is_game_started &&
+        !snapshot.is_game_end &&
+        !snapshot.is_game_result &&
+        snapshot.entry_count > 0 &&
+        snapshot.raw.some((player) => player.name.trim().length > 0)
+    );
 }

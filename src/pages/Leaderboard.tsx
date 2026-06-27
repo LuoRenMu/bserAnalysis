@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useNavigate } from "react-router-dom";
 import {
@@ -33,7 +33,7 @@ const GRID =
 
 const PAGE_BUTTON_LIMIT = 10;
 
-function CharacterUsage({ character }: { character: LeaderboardCharacter }) {
+const CharacterUsage = memo(function CharacterUsage({ character }: { character: LeaderboardCharacter }) {
   return (
     <div className="flex w-12 flex-col items-center gap-1" title={character.characterName}>
       <img
@@ -44,9 +44,9 @@ function CharacterUsage({ character }: { character: LeaderboardCharacter }) {
       <span className="text-[10px] font-bold leading-none tabular-nums text-[#ca9372]">{character.pickRate}</span>
     </div>
   );
-}
+});
 
-function LeaderboardTableRow({ row, delta, onSelect }: { row: LeaderboardRow; delta?: number; onSelect: (name: string) => void }) {
+const LeaderboardTableRow = memo(function LeaderboardTableRow({ row, delta, onSelect }: { row: LeaderboardRow; delta?: number; onSelect: (name: string) => void }) {
   const mainCharacter = row.characters[0];
 
   return (
@@ -88,7 +88,7 @@ function LeaderboardTableRow({ row, delta, onSelect }: { row: LeaderboardRow; de
       </div>
     </div>
   );
-}
+});
 
 export default function Leaderboard() {
   const result = useAtomValue(leaderboardResultAtom);
@@ -114,7 +114,10 @@ export default function Leaderboard() {
     void fetchSeasons();
   }, [fetchSeasons]);
 
-  const visiblePages = calculateVisiblePages(page, result?.totalPage ?? 0, PAGE_BUTTON_LIMIT);
+  const visiblePages = useMemo(
+    () => calculateVisiblePages(page, result?.totalPage ?? 0, PAGE_BUTTON_LIMIT),
+    [page, result?.totalPage],
+  );
 
   // dak.gg 的 rankDiff 实测恒为 0，所以排名涨跌由本地对比上一次看到的排名得出
   const snapshotKey = result ? `lb_ranks_${server}__${result.seasonId}` : null;
@@ -180,11 +183,11 @@ export default function Leaderboard() {
     void fetchLeaderboard({ page: normalized });
   };
 
-  const handlePlayerSelect = (name: string) => {
+  const handlePlayerSelect = useCallback((name: string) => {
     setSearchQuery(name);
     void searchPlayer({ nickname: name, page: 1 });
     navigate("/search");
-  };
+  }, [navigate, searchPlayer, setSearchQuery]);
 
   return (
     <PageShell>
